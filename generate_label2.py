@@ -156,7 +156,7 @@ def convert_svg_bytes_to_pdf_bytes(svg_content: str) -> Optional[bytes]:
         return None
 
 
-def generate_labels_from_dataframe(
+def generate_label2_from_dataframe(
     template_content: str, 
     df: pd.DataFrame, 
     generate_pdf: bool = True
@@ -245,93 +245,3 @@ def generate_labels_from_dataframe(
                 pdf_files.append((pdf_filename, pdf_bytes))
     
     return pdf_files, warnings
-
-
-def generate_labels_to_files(
-    template_path: str, 
-    data_path: str, 
-    output_dir: str, 
-    generate_pdf: bool = True
-) -> Tuple[List[str], List[str]]:
-    """
-    Generate label files from template and data files (file-based I/O).
-    
-    Args:
-        template_path: Path to the SVG template file
-        data_path: Path to the Excel data file
-        output_dir: Directory to save generated labels
-        generate_pdf: Whether to also generate PDF files
-        
-    Returns:
-        Tuple of (svg_paths, pdf_paths)
-    """
-    svg_dir = os.path.join(output_dir, 'svg')
-    pdf_dir = os.path.join(output_dir, 'pdf')
-    os.makedirs(svg_dir, exist_ok=True)
-    if generate_pdf and HAS_CAIROSVG:
-        os.makedirs(pdf_dir, exist_ok=True)
-    
-    with open(template_path, 'r', encoding='utf-8') as f:
-        template_content = f.read()
-    
-    df = pd.read_excel(data_path)
-    
-    svg_files, pdf_files = generate_labels_from_dataframe(template_content, df, generate_pdf)
-    
-    svg_paths = []
-    pdf_paths = []
-    
-    for svg_filename, svg_content in svg_files:
-        svg_path = os.path.join(svg_dir, svg_filename)
-        with open(svg_path, 'w', encoding='utf-8') as f:
-            f.write(svg_content)
-        svg_paths.append(svg_path)
-        print(f"✅ Generated SVG: {svg_filename}")
-    
-    for pdf_filename, pdf_bytes in pdf_files:
-        pdf_path = os.path.join(pdf_dir, pdf_filename)
-        with open(pdf_path, 'wb') as f:
-            f.write(pdf_bytes)
-        pdf_paths.append(pdf_path)
-        print(f"✅ Generated PDF: {pdf_filename}")
-    
-    return svg_paths, pdf_paths
-
-
-def main():
-    """CLI entry point."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    template_path = os.path.join(script_dir, 'template', 'law_label.svg')
-    data_path = os.path.join(script_dir, 'data', 'law_label_data.xlsx')
-    output_dir = os.path.join(script_dir, 'output')
-    
-    print("=" * 60)
-    print("Law Label Generator (SVG + PDF)")
-    print("=" * 60)
-    print(f"Template: {template_path}")
-    print(f"Data: {data_path}")
-    print(f"Output: {output_dir}")
-    print("=" * 60)
-    
-    if not os.path.exists(template_path):
-        print(f"❌ Error: Template file not found: {template_path}")
-        return
-    
-    if not os.path.exists(data_path):
-        print(f"❌ Error: Data file not found: {data_path}")
-        return
-    
-    svg_files, pdf_files = generate_labels_to_files(template_path, data_path, output_dir, generate_pdf=True)
-    
-    print("=" * 60)
-    print(f"✅ Successfully generated {len(svg_files)} SVG label(s)")
-    if HAS_CAIROSVG:
-        print(f"✅ Successfully generated {len(pdf_files)} PDF label(s)")
-    print(f"📁 SVG output: {os.path.join(output_dir, 'svg')}")
-    if HAS_CAIROSVG:
-        print(f"📁 PDF output: {os.path.join(output_dir, 'pdf')}")
-
-
-if __name__ == "__main__":
-    main()
