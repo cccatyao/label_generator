@@ -13,6 +13,47 @@ import io
 import pandas as pd
 from typing import List, Tuple, Optional
 
+# Configure fontconfig to use local font folder before importing cairosvg
+# This ensures the Avenir Next Condensed font is available even when not installed system-wide
+def _configure_fontconfig():
+    """Configure fontconfig to include the project's font directory."""
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_dir = os.path.join(script_dir, 'font')
+    
+    if os.path.exists(font_dir):
+        # Add the font directory to fontconfig's search path
+        # fontconfig uses XDG_DATA_DIRS and also FONTCONFIG_PATH
+        existing_font_path = os.environ.get('FONTCONFIG_PATH', '')
+        if font_dir not in existing_font_path:
+            if existing_font_path:
+                os.environ['FONTCONFIG_PATH'] = f"{font_dir}:{existing_font_path}"
+            else:
+                os.environ['FONTCONFIG_PATH'] = font_dir
+        
+        # Also set XDG_DATA_HOME to help with font discovery
+        # Create a fonts.conf file to configure fontconfig properly
+        fonts_conf_path = os.path.join(font_dir, 'fonts.conf')
+        if not os.path.exists(fonts_conf_path):
+            fonts_conf_content = f'''<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>{font_dir}</dir>
+</fontconfig>
+'''
+            try:
+                with open(fonts_conf_path, 'w') as f:
+                    f.write(fonts_conf_content)
+            except Exception:
+                pass  # Ignore if we can't write the file
+        
+        # Set FONTCONFIG_FILE to point to our config
+        if os.path.exists(fonts_conf_path):
+            os.environ['FONTCONFIG_FILE'] = fonts_conf_path
+
+# Configure fonts before importing cairosvg
+_configure_fontconfig()
+
 # Try to import cairosvg for PDF conversion
 try:
     import cairosvg
