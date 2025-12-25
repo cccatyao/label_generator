@@ -17,39 +17,86 @@ from typing import List, Tuple, Optional
 # This ensures the Avenir Next Condensed font is available even when not installed system-wide
 def _configure_fontconfig():
     """Configure fontconfig to include the project's font directory."""
+    import subprocess
+    import tempfile
+    
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     font_dir = os.path.join(script_dir, 'font')
     
-    if os.path.exists(font_dir):
-        # Add the font directory to fontconfig's search path
-        # fontconfig uses XDG_DATA_DIRS and also FONTCONFIG_PATH
-        existing_font_path = os.environ.get('FONTCONFIG_PATH', '')
-        if font_dir not in existing_font_path:
-            if existing_font_path:
-                os.environ['FONTCONFIG_PATH'] = f"{font_dir}:{existing_font_path}"
-            else:
-                os.environ['FONTCONFIG_PATH'] = font_dir
-        
-        # Also set XDG_DATA_HOME to help with font discovery
-        # Create a fonts.conf file to configure fontconfig properly
-        fonts_conf_path = os.path.join(font_dir, 'fonts.conf')
-        if not os.path.exists(fonts_conf_path):
-            fonts_conf_content = f'''<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    if not os.path.exists(font_dir):
+        return
+    
+    # Create a comprehensive fonts.conf that includes both custom and system fonts
+    fonts_conf_content = f'''<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
+    <!-- Include default system configuration -->
+    <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+    <include ignore_missing="yes">/etc/fonts/conf.d</include>
+    <include ignore_missing="yes">/usr/share/fonts</include>
+    <include ignore_missing="yes">/usr/local/share/fonts</include>
+    
+    <!-- Add project's custom font directory -->
     <dir>{font_dir}</dir>
+    
+    <!-- Cache directory -->
+    <cachedir prefix="xdg">fontconfig</cachedir>
+    <cachedir>/tmp/fontconfig-cache</cachedir>
+    
+    <!-- Font matching rules -->
+    <match target="pattern">
+        <test name="family" qual="any">
+            <string>AvenirNextCondensed-Bold</string>
+        </test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Avenir Next Condensed</string>
+        </edit>
+        <edit name="weight" mode="assign" binding="strong">
+            <const>bold</const>
+        </edit>
+    </match>
+    
+    <match target="pattern">
+        <test name="family" qual="any">
+            <string>AvenirNextCondensed-DemiBold</string>
+        </test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Avenir Next Condensed Demi Bold</string>
+        </edit>
+    </match>
+    
+    <match target="pattern">
+        <test name="family" qual="any">
+            <string>AvenirNextCondensed-UltraLight</string>
+        </test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Avenir Next Condensed Ultra Light</string>
+        </edit>
+    </match>
 </fontconfig>
 '''
-            try:
-                with open(fonts_conf_path, 'w') as f:
-                    f.write(fonts_conf_content)
-            except Exception:
-                pass  # Ignore if we can't write the file
-        
-        # Set FONTCONFIG_FILE to point to our config
-        if os.path.exists(fonts_conf_path):
-            os.environ['FONTCONFIG_FILE'] = fonts_conf_path
+    
+    fonts_conf_path = os.path.join(font_dir, 'fonts.conf')
+    try:
+        with open(fonts_conf_path, 'w') as f:
+            f.write(fonts_conf_content)
+    except Exception:
+        pass  # Ignore if we can't write the file
+    
+    # Set fontconfig environment variables
+    os.environ['FONTCONFIG_FILE'] = fonts_conf_path
+    os.environ['FONTCONFIG_PATH'] = font_dir
+    
+    # Force fontconfig cache rebuild to pick up new fonts
+    try:
+        cache_dir = '/tmp/fontconfig-cache'
+        os.makedirs(cache_dir, exist_ok=True)
+        # Run fc-cache to build font cache (silently)
+        subprocess.run(['fc-cache', '-f', font_dir], 
+                      capture_output=True, timeout=30)
+    except Exception:
+        pass  # fc-cache may not be available
 
 # Configure fonts before importing cairosvg
 _configure_fontconfig()
