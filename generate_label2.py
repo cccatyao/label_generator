@@ -181,7 +181,7 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     
     # Handle origin country - map CN to CHINA, VN to VIETNAM
     origin_clean = origin.strip().upper() if origin else ""
-    origin_map = {'CN': 'CHINA', 'VN': 'VIETNAM'}
+    origin_map = {'CN': 'CHINA', 'VN': 'VIETNAM', 'KHM': 'CAMBODIA'}
     origin_country = origin_map.get(origin_clean, origin_clean)
     svg_content = svg_content.replace('{{origin_country}}', origin_country)
     
