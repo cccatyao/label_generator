@@ -4,6 +4,8 @@ Label Generator - Streamlit Web App
 
 A web interface for generating labels from Excel data.
 Upload an xlsx file and download generated PDF labels as a zip file.
+
+Generates both Label 2 and Label 19 from the same data.
 """
 
 import streamlit as st
@@ -18,6 +20,9 @@ from generate_label2 import (
     generate_label2_from_dataframe as generate_label2,
     HAS_CAIROSVG
 )
+from generate_label19 import (
+    generate_label19_from_dataframe as generate_label19
+)
 
 # Page configuration
 st.set_page_config(
@@ -29,69 +34,45 @@ st.set_page_config(
 # Title
 st.title("🏷️ Label Generator")
 
-# Label type selector
-st.subheader("📋 Select Label Type")
-label_type = st.selectbox(
-    "Choose which label to generate:",
-    options=["Label 2", "Label 19"],
-    index=0,
-    help="Select the type of label you want to generate"
-)
+# Description
+st.markdown("""
+**Upload your Excel file to generate both Label 2 and Label 19 at once.**
 
-# Label type configurations
-LABEL_CONFIGS = {
-    "Label 2": {
-        "template": "label2.svg",
-        "generator": generate_label2,
-        "description": """
-**Expected Excel format for Label 2:**
+**Expected Excel format:**
 - Column 1: Product code (used for filename)
 - Column 2: Material composition text (max 15 lines)
 - Column 3: REG. No
 - Column 4: PER. No (optional)
 - Column 5: Firm
 - Column 6: Origin (CN/VN)
-""",
-        "zip_prefix": "label2"
-    },
-    "Label 19": {
-        "template": None,  # TODO: Add template path
-        "generator": None,  # TODO: Import from generate_label19
-        "description": """
-**Label 19:** Coming soon - template and generator not yet configured.
-""",
-        "zip_prefix": "label19"
-    }
-}
-
-# Get current label config
-config = LABEL_CONFIGS[label_type]
-
-# Show description for selected label type
-st.markdown(config["description"])
+""")
 
 # Check if cairosvg is available
 if not HAS_CAIROSVG:
     st.error("❌ cairosvg is not installed. PDF generation is not available.")
     st.stop()
 
-# Check if label type is implemented
-if config["generator"] is None:
-    st.warning("⚠️ This label type is not yet implemented.")
-    st.stop()
-
-# Get template path
+# Get template paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
-template_path = os.path.join(script_dir, 'template', config["template"])
+template2_path = os.path.join(script_dir, 'template', 'label2.svg')
+template19_path = os.path.join(script_dir, 'template', 'label19.svg')
 
-# Check if template exists
-if not os.path.exists(template_path):
-    st.error(f"❌ Template file not found: {template_path}")
+# Check if templates exist
+templates_missing = []
+if not os.path.exists(template2_path):
+    templates_missing.append("label2.svg")
+if not os.path.exists(template19_path):
+    templates_missing.append("label19.svg")
+
+if templates_missing:
+    st.error(f"❌ Template file(s) not found: {', '.join(templates_missing)}")
     st.stop()
 
-# Load template
-with open(template_path, 'r', encoding='utf-8') as f:
-    template_content = f.read()
+# Load templates
+with open(template2_path, 'r', encoding='utf-8') as f:
+    template2_content = f.read()
+with open(template19_path, 'r', encoding='utf-8') as f:
+    template19_content = f.read()
 
 # File uploader
 st.subheader("📁 Upload Data File")
@@ -111,36 +92,53 @@ if uploaded_file is not None:
         # Generate button
         if st.button("🚀 Generate Labels", type="primary", use_container_width=True):
             with st.spinner("Generating labels..."):
-                # Generate labels in memory (PDF only)
-                pdf_files, warnings = config["generator"](
-                    template_content, 
+                all_pdf_files = []
+                all_warnings = []
+                
+                # Generate Label 2
+                pdf_files_2, warnings_2 = generate_label2(
+                    template2_content, 
                     df
                 )
+                all_pdf_files.extend(pdf_files_2)
+                all_warnings.extend(warnings_2)
+                
+                # Generate Label 19
+                pdf_files_19, warnings_19 = generate_label19(
+                    template19_content,
+                    df
+                )
+                all_pdf_files.extend(pdf_files_19)
+                all_warnings.extend(warnings_19)
                 
                 # Display warnings if any
-                if warnings:
+                if all_warnings:
                     st.subheader("⚠️ Warnings")
-                    for warning in warnings:
+                    for warning in all_warnings:
                         st.warning(warning)
                 
-                if not pdf_files:
+                if not all_pdf_files:
                     st.error("❌ No labels were generated. Check your data file.")
                 else:
                     # Create zip file in memory
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                         # Add PDF files
-                        for filename, content in pdf_files:
+                        for filename, content in all_pdf_files:
                             zf.writestr(filename, content)
                     
                     zip_buffer.seek(0)
                     
+                    # Count labels by type
+                    label2_count = len(pdf_files_2)
+                    label19_count = len(pdf_files_19)
+                    
                     # Show success message
-                    st.success(f"✅ Generated {len(pdf_files)} PDF labels!")
+                    st.success(f"✅ Generated {label2_count} Label 2 PDFs and {label19_count} Label 19 PDFs!")
                     
                     # Download button
                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    zip_filename = f"{config['zip_prefix']}_{timestamp}.zip"
+                    zip_filename = f"labels_{timestamp}.zip"
                     
                     st.download_button(
                         label="📥 Download All Labels (ZIP)",
@@ -155,5 +153,4 @@ if uploaded_file is not None:
 
 # Footer
 st.divider()
-st.caption("Label Generator v1.1 | Select Label Type → Upload Excel → Generate Labels → Download ZIP")
-
+st.caption("Label Generator v1.2 | Upload Excel → Generate Label 2 & Label 19 → Download ZIP")
