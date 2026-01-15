@@ -11,6 +11,8 @@ PARTS_DICT = {
     "BACK CUSHION": "Un coussin de dossier",
     "PILLOW BOLSTER": "Coussin pour accoudoir",
     "ARM CUSHION": "Accoudoir",
+    "Support Bar":"Barre de soutien",
+    "Seat Base":"Base de siège",
 }
 
 # Material terms - English (normalized uppercase) -> French translation
