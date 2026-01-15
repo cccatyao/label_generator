@@ -50,10 +50,7 @@ def _configure_fontconfig():
             <string>AvenirNextCondensed-Bold</string>
         </test>
         <edit name="family" mode="assign" binding="strong">
-            <string>Avenir Next Condensed</string>
-        </edit>
-        <edit name="weight" mode="assign" binding="strong">
-            <const>bold</const>
+            <string>Avenir Next Condensed Bold</string>
         </edit>
     </match>
     
