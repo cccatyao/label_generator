@@ -1,0 +1,16 @@
+label_generator.code-workspace
+.gitignore
+template/label 20.svg
+template/label 17.svg
+template/label 18.svg
+template/Label 21.svg
+template/Label Origin.svg
+data/law_label_data.xlsx
+**/.DS_Store
+.aiexclude
+.DS_Store
+__pycache__/*.pyc
+.DS_Store
+data/term_dictionary.xlsx
+data/washing_label.xlsx
+font/fonts.conf
