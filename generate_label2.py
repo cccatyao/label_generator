@@ -13,6 +13,9 @@ import io
 import pandas as pd
 from typing import List, Tuple, Optional
 
+# Import validation functions from centralized module
+from validation import contains_non_english_chars
+
 # Configure fontconfig to use local font folder before importing cairosvg
 # This ensures the Avenir Next Condensed font is available even when not installed system-wide
 def _configure_fontconfig():
@@ -202,42 +205,6 @@ def sanitize_filename(text: str) -> str:
     return safe
 
 
-def contains_non_english_chars(text: str) -> bool:
-    """
-    Check if text contains non-English characters (like Chinese parentheses).
-    Returns True if non-English characters are found.
-    """
-    # Common non-English characters to check for
-    non_english_chars = [
-        '（', '）',  # Chinese parentheses
-        '【', '】',  # Chinese brackets
-        '「', '」',  # Chinese quotation marks
-        '『', '』',  # Double angle brackets
-        '《', '》',  # Chinese book title marks
-        '，', '。',  # Chinese comma and period
-        '：', '；',  # Chinese colon and semicolon
-        '"', '"',   # Chinese quotation marks
-        ''', ''',   # Chinese single quotes
-        '、',       # Chinese enumeration comma
-        '％',       # Full-width percent
-    ]
-    
-    for char in non_english_chars:
-        if char in text:
-            return True
-    
-    # Also check for characters outside basic ASCII printable range (except common unicode)
-    for char in text:
-        # Allow ASCII printable characters, newlines, and some common symbols
-        if ord(char) > 127:
-            # Check if it's a common acceptable unicode (like degree symbol, etc.)
-            # For now, flag any non-ASCII as potentially non-English
-            if char not in ['°', '±', '×', '÷', '®', '™', '©']:
-                return True
-    
-    return False
-
-
 def convert_svg_bytes_to_pdf_bytes(svg_content: str) -> Optional[bytes]:
     """Convert SVG content to PDF bytes in memory."""
     if not HAS_CAIROSVG:
@@ -258,9 +225,12 @@ def generate_label2_from_dataframe(
     """
     Generate PDF labels from a DataFrame (in-memory, no file I/O).
     
+    Note: This function assumes records have already been validated.
+    Use validate_record_for_labels() before calling this function.
+    
     Args:
         template_content: SVG template content as string
-        df: DataFrame with label data
+        df: DataFrame with label data (pre-validated)
         generate_pdf: Whether to generate PDF files (kept for compatibility)
         
     Returns:
@@ -280,8 +250,6 @@ def generate_label2_from_dataframe(
     
     pdf_files = []
     warnings = []
-    
-    MAX_MATERIAL_LINES = 15
     
     for index, row in df.iterrows():
         materials_text = str(row[materials_col]) if pd.notna(row[materials_col]) else ""
@@ -303,28 +271,8 @@ def generate_label2_from_dataframe(
         if origin_col and origin_col in row:
             origin = str(row[origin_col]) if pd.notna(row[origin_col]) else ""
         
+        # Skip if missing required fields (shouldn't happen with pre-validation)
         if not materials_text or not reg_no:
-            continue
-        
-        # Check material text line count (handle both \\n and actual newlines)
-        material_lines = materials_text.replace('\\n', '\n').split('\n')
-        # Count non-empty lines
-        non_empty_lines = [line for line in material_lines if line.strip()]
-        if len(non_empty_lines) > MAX_MATERIAL_LINES:
-            warnings.append(f"{identifier} label is not generated, reason: material text larger than {MAX_MATERIAL_LINES} lines.")
-            continue
-        
-        # Validate English input for material_text, reg_no, and per_no
-        if contains_non_english_chars(materials_text):
-            warnings.append(f"{identifier} label is not generated, reason: material text is not English input.")
-            continue
-        
-        if contains_non_english_chars(reg_no):
-            warnings.append(f"{identifier} label is not generated, reason: REG # is not English input.")
-            continue
-        
-        if per_no and contains_non_english_chars(per_no):
-            warnings.append(f"{identifier} label is not generated, reason: PER # is not English input.")
             continue
         
         svg_content = replace_template_variables(template_content, materials_text, reg_no, per_no, firm, origin)

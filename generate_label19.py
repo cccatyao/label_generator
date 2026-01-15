@@ -15,124 +15,16 @@ import pandas as pd
 from typing import List, Tuple, Optional, Dict
 
 # Configure fontconfig (reuse from generate_label2)
-from generate_label2 import _configure_fontconfig, HAS_CAIROSVG, sanitize_filename, contains_non_english_chars
+from generate_label2 import _configure_fontconfig, HAS_CAIROSVG, sanitize_filename
+
+# Import validation functions from centralized module
+from validation import contains_non_english_chars, parse_material_text
 
 # Ensure fonts are configured
 _configure_fontconfig()
 
 if HAS_CAIROSVG:
     import cairosvg
-
-
-def parse_material_text(material_text: str) -> Tuple[List[Dict], List[str]]:
-    """
-    Parse material_text into structured parts using dictionary-based detection.
-    
-    Args:
-        material_text: Multi-line text with parts and materials
-        
-    Returns:
-        Tuple of (parts_list, alerts) where:
-        - parts_list: List of dicts with 'title' and 'materials' keys
-        - alerts: List of alert messages for validation issues
-    """
-    from term_config import find_part_match, find_material_match, normalize_text
-    
-    # Normalize line breaks
-    text = material_text.replace('\\n', '\n')
-    lines = text.split('\n')
-    
-    parts = []
-    alerts = []
-    current_part = None
-    
-    # Pattern to extract: text before count (1), (2), etc.
-    # Matches optional count like (1), (2) at the end
-    count_pattern = re.compile(r'^(.*?)(\(\d+\))?\s*:?\s*$')
-    # Pattern to detect percentage at start of line (e.g., "98%", "2%", "100%")
-    percentage_pattern = re.compile(r'^(\d+%)\s*(.*)$')
-    
-    for line in lines:
-        line = line.strip()
-        
-        if not line:
-            continue
-        
-        # Check if line is a Part or Material using dictionary
-        part_key, part_french = find_part_match(line)
-        material_key, material_french = find_material_match(line)
-        
-        if part_key:
-            # This is a part title
-            # Save previous part if exists
-            if current_part is not None and (current_part['title'] or current_part['materials']):
-                parts.append(current_part)
-            
-            # Process the title: extract count suffix if present
-            match = count_pattern.match(line)
-            if match:
-                title_text = match.group(1).strip()
-                count_suffix = match.group(2) or ""
-            else:
-                title_text = line.rstrip(':').strip()
-                count_suffix = ""
-            
-            # Remove parentheses from English title (e.g., BODY(ARMLESS) -> BODY ARMLESS)
-            title_text = re.sub(r'\(([^)]+)\)', r' \1', title_text)
-            title_text = re.sub(r'\s+', ' ', title_text).strip()
-            
-            # Build final title with French: {English}({French}){count}:
-            formatted_title = f"{title_text}({part_french}){count_suffix}:"
-            
-            current_part = {
-                'title': formatted_title,
-                'materials': []
-            }
-        elif material_key:
-            # This is a material line
-            if current_part is None:
-                current_part = {
-                    'title': None,
-                    'materials': []
-                }
-            
-            # Extract percentage if present
-            pct_match = percentage_pattern.match(line)
-            if pct_match:
-                percentage = pct_match.group(1)
-                material_text_part = pct_match.group(2).strip()
-                # Build formatted material: {percentage} {English}({French})
-                formatted_material = f"{percentage} {material_text_part}({material_french})"
-            else:
-                # No percentage, just add French translation
-                formatted_material = f"{line}({material_french})"
-            
-            current_part['materials'].append({
-                'text': formatted_material,
-                'has_percentage': bool(pct_match)
-            })
-        else:
-            # Not found in dictionary - add warning
-            alerts.append(f"part or material not exist in dictionary: '{line}'")
-            # Still process it as best effort - treat as part if no current part, else as material
-            if current_part is None:
-                if current_part is not None and (current_part['title'] or current_part['materials']):
-                    parts.append(current_part)
-                current_part = {
-                    'title': f"{line}:",
-                    'materials': []
-                }
-            else:
-                current_part['materials'].append({
-                    'text': line,
-                    'has_percentage': False
-                })
-    
-    # Don't forget the last part
-    if current_part is not None and (current_part['title'] or current_part['materials']):
-        parts.append(current_part)
-    
-    return parts, alerts
 
 
 def generate_label19_svg_content(parts: List[Dict]) -> Tuple[str, float]:
@@ -245,11 +137,14 @@ def generate_label19_from_dataframe(
     """
     Generate Label 19 PDFs from a DataFrame (in-memory, no file I/O).
     
+    Note: This function assumes records have already been validated.
+    Use validate_record_for_labels() before calling this function.
+    
     Uses the same data structure as label 2 - specifically the material_text column.
     
     Args:
         template_content: SVG template content as string
-        df: DataFrame with label data (same format as label 2)
+        df: DataFrame with label data (pre-validated)
         generate_pdf: Whether to generate PDF files
         
     Returns:
@@ -267,22 +162,15 @@ def generate_label19_from_dataframe(
         materials_text = str(row[materials_col]) if pd.notna(row[materials_col]) else ""
         identifier = str(row[columns[0]]) if pd.notna(row[columns[0]]) else f"label_{index}"
         
+        # Skip if missing required fields (shouldn't happen with pre-validation)
         if not materials_text:
             continue
         
-        # Validate English input
-        if contains_non_english_chars(materials_text):
-            warnings.append(f"{identifier} label19 is not generated, reason: material text is not English input.")
-            continue
-        
-        # Parse material text into parts
-        parts, parse_alerts = parse_material_text(materials_text)
-        
-        # Add parsing alerts as warnings
-        for alert in parse_alerts:
-            warnings.append(f"{identifier} label19: {alert}")
+        # Parse material text into parts (validation already done, so this should succeed)
+        parts, parse_alerts, has_unmapped_terms = parse_material_text(materials_text)
         
         if not parts:
+            # This shouldn't happen with pre-validation, but keep as safety check
             warnings.append(f"{identifier} label19 is not generated, reason: no valid parts found in material text.")
             continue
         
