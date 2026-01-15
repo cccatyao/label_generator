@@ -59,6 +59,15 @@ def _configure_fontconfig():
     
     <match target="pattern">
         <test name="family" qual="any">
+            <string>AvenirNextCondensed-Medium</string>
+        </test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Avenir Next Condensed Medium</string>
+        </edit>
+    </match>
+    
+    <match target="pattern">
+        <test name="family" qual="any">
             <string>AvenirNextCondensed-DemiBold</string>
         </test>
         <edit name="family" mode="assign" binding="strong">
