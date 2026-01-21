@@ -44,7 +44,7 @@ st.markdown("""
 - Column 3: REG. No
 - Column 4: PER. No (optional)
 - Column 5: Firm
-- Column 6: Origin (CN/VN)
+- Column 6: Origin (CN/VN/KHM)
 """)
 
 # Check if cairosvg is available

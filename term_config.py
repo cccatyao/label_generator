@@ -24,6 +24,7 @@ MATERIALS_DICT = {
     "PVC BOARD": "Planche de PVC",
     "WATERFOWL FEATHERS": "Les plumes de canard",
     "EXPANDED POLYTHYLENE FOAM": "Mousse de polyéthylène expansé",
+    "FELT":"Feutre",
 }
 
 
