@@ -12,5 +12,6 @@ data/law_label_data.xlsx
 __pycache__/*.pyc
 .DS_Store
 data/term_dictionary.xlsx
-data/washing_label.xlsx
 font/fonts.conf
+data/law_label_data.xlsx
+data/law_label_data.xlsx

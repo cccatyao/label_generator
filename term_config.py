@@ -25,6 +25,7 @@ MATERIALS_DICT = {
     "WATERFOWL FEATHERS": "Les plumes de canard",
     "EXPANDED POLYTHYLENE FOAM": "Mousse de polyéthylène expansé",
     "FELT":"Feutre",
+    "IRON PAD":"Plaque de fixation",
 }
 
 
