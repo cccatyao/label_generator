@@ -68,6 +68,7 @@ OUTER_COVER_TITLE_MAX_TEXT_WIDTH = LABEL_INNER_WIDTH - 2.0
 OUTER_COVER_TITLE_FALLBACK_CHAR_WIDTH_FACTOR = 0.34
 OUTER_COVER_MEASURE_FONT_SIZE = 240
 OUTER_COVER_MEASURE_FONT_PATH = os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf")
+WASH_GUIDES_WITHOUT_ICONS = {"spot_clean"}
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
@@ -220,8 +221,14 @@ def _parse_washing_guides(washing_guide_text: str) -> Tuple[List[str], List[str]
 
     for raw_instruction in instructions:
         icon_name = _wash_guide_to_icon_name(raw_instruction)
+        display_line = _clean_instruction_display(raw_instruction)
         if not icon_name:
             alerts.append(f"washing guide can not convert to icon name: '{raw_instruction}'")
+            continue
+
+        if icon_name in WASH_GUIDES_WITHOUT_ICONS:
+            if display_line:
+                text_lines.append(display_line)
             continue
 
         icon_path = os.path.join(WASHING_ICON_DIR, f"{icon_name}.svg")
@@ -234,7 +241,6 @@ def _parse_washing_guides(washing_guide_text: str) -> Tuple[List[str], List[str]
         if icon_name not in icon_names:
             icon_names.append(icon_name)
 
-        display_line = _clean_instruction_display(raw_instruction)
         if display_line:
             text_lines.append(display_line)
 

@@ -183,7 +183,7 @@
             <rect class="cls-6" y="155.9" width="595.28" height="841.89" />
         </clipPath>
     </defs>
-    <text class="cls-13" transform="translate(50.07 78.78)">
+    <text class="cls-13" text-anchor="middle" transform="translate(122.00 78.78)">
         {{material_lines}}
     </text>
     <text class="cls-18" text-anchor="middle" transform="translate(122.00 {{washing_text_y}})">
