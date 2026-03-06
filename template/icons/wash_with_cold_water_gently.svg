@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="71.5 4 16.660004 16.760002"
+   width="16.660004"
+   height="16.760002"
+   version="1.1"
+   id="svg1196"
+   sodipodi:docname="wash_with_cold_water_gently.svg"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1196"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="11.263394"
+     inkscape:cx="44.879899"
+     inkscape:cy="9.6329753"
+     inkscape:window-width="1920"
+     inkscape:window-height="1022"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1196" />
+  <defs
+     id="defs1">
+    <style
+       id="style1">.cls-1{letter-spacing:-.04em;}.cls-2{letter-spacing:-.02em;}.cls-3{fill:#231815;}.cls-4{fill:#fff;}.cls-5{letter-spacing:-.02em;}.cls-6{font-family:AvenirNextCondensed-Heavy, 'Avenir Next Condensed';font-size:9px;font-weight:800;}.cls-7{letter-spacing:-.03em;}.cls-8{stroke:#fff;stroke-miterlimit:10;}.cls-9{letter-spacing:-.01em;}.cls-10{fill:#040000;}.cls-11{letter-spacing:-.04em;}.cls-12{letter-spacing:-.02em;}.cls-13{letter-spacing:0em;}</style>
+    <clipPath
+       id="clip_icon_006">
+      <rect
+         x="71.5"
+         y="4"
+         width="56"
+         height="43"
+         id="rect1" />
+    </clipPath>
+  </defs>
+  <path
+     class="st4"
+     d="m 76.785002,4.375 c 0,1.09 1.41,1.98 3.15,1.98"
+     id="path10"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <path
+     class="st4"
+     d="m 82.985002,4.375 c 0,1.09 -1.37,1.98 -3.05,1.98"
+     id="path11"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <path
+     class="st4"
+     d="m 82.985002,4.575 c 0,1.09 1.98,1.98 4.42,1.98"
+     id="path12"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <path
+     class="st4"
+     d="m 76.785002,4.575 c 0,1.13 -1.98,2.04 -4.42,2.04"
+     id="path13"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <line
+     class="st4"
+     x1="71.875"
+     y1="4.3850002"
+     x2="74.095001"
+     y2="20.385002"
+     id="line13"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <line
+     class="st4"
+     x1="87.785004"
+     y1="4.3850002"
+     x2="85.565002"
+     y2="20.385002"
+     id="line14"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <line
+     class="st4"
+     x1="74.095001"
+     y1="20.385002"
+     x2="85.575005"
+     y2="20.385002"
+     id="line15"
+     style="fill:none;stroke:#231815;stroke-width:0.75px;stroke-linecap:round;stroke-miterlimit:10" />
+  <path
+     class="st2"
+     d="m 80.395002,13.035 c 0,0.23 -0.19,0.42 -0.42,0.42 -0.23,0 -0.42,-0.19 -0.42,-0.42 0,-0.23 0.19,-0.42 0.42,-0.42 0.23,0 0.42,0.19 0.42,0.42 z"
+     id="path20"
+     style="fill:none;stroke:#231815;stroke-linecap:round;stroke-miterlimit:10" />
+</svg>

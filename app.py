@@ -23,6 +23,9 @@ from generate_label2 import (
 from generate_label19 import (
     generate_label19_from_dataframe as generate_label19
 )
+from generate_label4 import (
+    generate_label4_from_dataframe as generate_label4
+)
 
 # Page configuration
 st.set_page_config(
@@ -36,7 +39,7 @@ st.title("🏷️ Label Generator")
 
 # Description
 st.markdown("""
-**Upload your Excel file to generate both Label 2 and Label 19 at once.**
+**Upload your Excel file to generate Label 2, Label 19, and Label 4 at once.**
 
 **Expected Excel format:**
 - Column 1: Product code (used for filename)
@@ -45,6 +48,8 @@ st.markdown("""
 - Column 4: PER. No (optional)
 - Column 5: Firm
 - Column 6: Origin (CN/VN/KHM)
+- Column 7: Washing Material (for Label 4)
+- Column 8: Washing Guide (for Label 4 icons/text)
 """)
 
 # Check if cairosvg is available
@@ -56,6 +61,7 @@ if not HAS_CAIROSVG:
 script_dir = os.path.dirname(os.path.abspath(__file__))
 template2_path = os.path.join(script_dir, 'template', 'label2.svg')
 template19_path = os.path.join(script_dir, 'template', 'label19.svg')
+template4_path = os.path.join(script_dir, 'template', 'label4.svg')
 
 # Check if templates exist
 templates_missing = []
@@ -63,6 +69,8 @@ if not os.path.exists(template2_path):
     templates_missing.append("label2.svg")
 if not os.path.exists(template19_path):
     templates_missing.append("label19.svg")
+if not os.path.exists(template4_path):
+    templates_missing.append("label4.svg")
 
 if templates_missing:
     st.error(f"❌ Template file(s) not found: {', '.join(templates_missing)}")
@@ -73,6 +81,8 @@ with open(template2_path, 'r', encoding='utf-8') as f:
     template2_content = f.read()
 with open(template19_path, 'r', encoding='utf-8') as f:
     template19_content = f.read()
+with open(template4_path, 'r', encoding='utf-8') as f:
+    template4_content = f.read()
 
 # Initialize session state for persisting results
 if 'warnings' not in st.session_state:
@@ -85,6 +95,8 @@ if 'label2_count' not in st.session_state:
     st.session_state.label2_count = 0
 if 'label19_count' not in st.session_state:
     st.session_state.label19_count = 0
+if 'label4_count' not in st.session_state:
+    st.session_state.label4_count = 0
 if 'last_uploaded_file' not in st.session_state:
     st.session_state.last_uploaded_file = None
 
@@ -105,6 +117,7 @@ if uploaded_file is not None:
         st.session_state.zip_filename = None
         st.session_state.label2_count = 0
         st.session_state.label19_count = 0
+        st.session_state.label4_count = 0
     
     # Read and preview data
     try:
@@ -120,6 +133,9 @@ if uploaded_file is not None:
                 
                 all_pdf_files = []
                 all_warnings = []
+                pdf_files_2 = []
+                pdf_files_19 = []
+                pdf_files_4 = []
                 
                 # Get column names
                 columns = df.columns.tolist()
@@ -170,6 +186,14 @@ if uploaded_file is not None:
                     )
                     all_pdf_files.extend(pdf_files_19)
                     all_warnings.extend(warnings_19)
+
+                # Generate Label 4 independently from label2/label19 row gating
+                pdf_files_4, warnings_4 = generate_label4(
+                    template4_content,
+                    df
+                )
+                all_pdf_files.extend(pdf_files_4)
+                all_warnings.extend(warnings_4)
                 
                 # Store warnings in session state
                 st.session_state.warnings = all_warnings
@@ -179,6 +203,7 @@ if uploaded_file is not None:
                     st.session_state.zip_filename = None
                     st.session_state.label2_count = 0
                     st.session_state.label19_count = 0
+                    st.session_state.label4_count = 0
                 else:
                     # Create zip file in memory
                     zip_buffer = io.BytesIO()
@@ -193,6 +218,7 @@ if uploaded_file is not None:
                     st.session_state.zip_data = zip_buffer.getvalue()
                     st.session_state.label2_count = len(pdf_files_2)
                     st.session_state.label19_count = len(pdf_files_19)
+                    st.session_state.label4_count = len(pdf_files_4)
                     
                     # Generate filename
                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -207,7 +233,12 @@ if uploaded_file is not None:
         # Display download button if zip data exists (persists after download)
         if st.session_state.zip_data is not None:
             # Show success message
-            st.success(f"✅ Generated {st.session_state.label2_count} Label 2 PDFs and {st.session_state.label19_count} Label 19 PDFs!")
+            st.success(
+                "✅ Generated "
+                f"{st.session_state.label2_count} Label 2 PDFs, "
+                f"{st.session_state.label19_count} Label 19 PDFs, and "
+                f"{st.session_state.label4_count} Label 4 PDFs!"
+            )
             
             # Download button
             st.download_button(
@@ -227,4 +258,4 @@ if uploaded_file is not None:
 
 # Footer
 st.divider()
-st.caption("Label Generator v1.2 | Upload Excel → Generate Label 2 & Label 19 → Download ZIP")
+st.caption("Label Generator v1.3 | Upload Excel → Generate Label 2/19/4 → Download ZIP")
