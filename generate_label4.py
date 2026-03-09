@@ -53,6 +53,7 @@ ICON_HEIGHT = 16.0
 DISTRIBUTOR_LINE_HEIGHT = 8.4
 DISTRIBUTOR_WRAP_MAX_CHARS = 42
 MATERIAL_WRAP_MAX_CHARS = 34
+MATERIAL_TEXT_MAX_WIDTH = LABEL_INNER_WIDTH - 2.0
 
 MATERIAL_CLASS = "cls-25"
 PART_TITLE_BOLD_CLASS = "cls-20"
@@ -68,6 +69,28 @@ OUTER_COVER_TITLE_MAX_TEXT_WIDTH = LABEL_INNER_WIDTH - 2.0
 OUTER_COVER_TITLE_FALLBACK_CHAR_WIDTH_FACTOR = 0.34
 OUTER_COVER_MEASURE_FONT_SIZE = 240
 OUTER_COVER_MEASURE_FONT_PATH = os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf")
+MATERIAL_MEASURE_FONT_SIZE = 240
+MATERIAL_MEASURE_FONT_PATHS = {
+    MATERIAL_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
+    SUB_PART_TITLE_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
+    DEFAULT_MATERIAL_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
+    PART_TITLE_BOLD_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf"),
+    PART_TITLE_FRENCH_BOLD_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf"),
+}
+MATERIAL_FONT_SIZE_BY_CLASS = {
+    MATERIAL_CLASS: 13.4,
+    SUB_PART_TITLE_CLASS: 13.4,
+    DEFAULT_MATERIAL_CLASS: 13.4,
+    PART_TITLE_BOLD_CLASS: 13.4,
+    PART_TITLE_FRENCH_BOLD_CLASS: 13.4,
+}
+MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS = {
+    MATERIAL_CLASS: 0.34,
+    SUB_PART_TITLE_CLASS: 0.34,
+    DEFAULT_MATERIAL_CLASS: 0.34,
+    PART_TITLE_BOLD_CLASS: 0.34,
+    PART_TITLE_FRENCH_BOLD_CLASS: 0.34,
+}
 WASH_GUIDES_WITHOUT_ICONS = {"spot_clean"}
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -127,18 +150,7 @@ def _build_material_lines(material_text: str) -> Tuple[List[Tuple[str, str]], Li
     def _ensure_colon_suffix(text: str) -> str:
         return text if text.endswith(":") else f"{text}:"
 
-    alerts: List[str] = []
-    parsed_lines: List[Tuple[str, str]] = []
-
-    normalized = material_text.replace("\\n", "\n")
-    raw_segments: List[str] = []
-    for raw_line in normalized.split("\n"):
-        for chunk in raw_line.split(","):
-            stripped = chunk.strip()
-            if stripped:
-                raw_segments.append(stripped)
-
-    for segment in raw_segments:
+    def _parse_segment(segment: str) -> None:
         pct_match = re.match(r"^(\d+%)\s*(.*)$", segment)
         if pct_match:
             percentage = pct_match.group(1)
@@ -151,21 +163,34 @@ def _build_material_lines(material_text: str) -> Tuple[List[Tuple[str, str]], Li
 
         match_key, french, line_type = find_label4_title_match(material_part)
         if not match_key:
+            inline_title_match = re.match(r"^(.*?):\s*(.+)$", material_part)
+            if inline_title_match:
+                inline_title = inline_title_match.group(1).strip()
+                inline_remainder = inline_title_match.group(2).strip()
+                inline_match_key, inline_french, inline_line_type = find_label4_title_match(inline_title)
+                if inline_match_key and inline_line_type != "Material":
+                    translated_title = _ensure_colon_suffix(f"{inline_match_key}({inline_french})")
+                    parsed_lines.append((translated_title, SUB_PART_TITLE_CLASS if inline_line_type == "Sub-part Title" else PART_TITLE_BOLD_CLASS))
+                    if inline_remainder:
+                        _parse_segment(inline_remainder)
+                    return
+
             fallback_class = MATERIAL_CLASS if percentage else DEFAULT_MATERIAL_CLASS
             parsed_lines.append((segment, fallback_class))
-            continue
+            return
 
         if line_type == "Material":
             joiner = " " if pct_has_space else ""
-            text_value = f"{percentage}{joiner}{match_key}" if percentage else match_key
+            bilingual_material = f"{match_key}({french})"
+            text_value = f"{percentage}{joiner}{bilingual_material}" if percentage else bilingual_material
             parsed_lines.append((text_value, MATERIAL_CLASS))
-            continue
+            return
 
         if line_type == "Sub-part Title":
             combined_text = f"{match_key}({french})"
             combined_text = _ensure_colon_suffix(combined_text)
             parsed_lines.append((combined_text, SUB_PART_TITLE_CLASS))
-            continue
+            return
 
         combined_text = f"{match_key}({french})"
         combined_text = _ensure_colon_suffix(combined_text)
@@ -175,13 +200,27 @@ def _build_material_lines(material_text: str) -> Tuple[List[Tuple[str, str]], Li
             parsed_lines.append((match_key, PART_TITLE_BOLD_CLASS))
             french_line = _ensure_colon_suffix(f"({french})")
             parsed_lines.append((french_line, PART_TITLE_FRENCH_BOLD_CLASS))
-            continue
+            return
 
         if percentage:
             joiner = " " if pct_has_space else ""
             parsed_lines.append((f"{percentage}{joiner}{combined_text}", PART_TITLE_BOLD_CLASS))
         else:
             parsed_lines.append((combined_text, PART_TITLE_BOLD_CLASS))
+
+    alerts: List[str] = []
+    parsed_lines: List[Tuple[str, str]] = []
+
+    normalized = material_text.replace("\\n", "\n")
+    raw_segments: List[str] = []
+    for raw_line in normalized.split("\n"):
+        for chunk in raw_line.split(","):
+            stripped = chunk.strip()
+            if stripped:
+                raw_segments.append(stripped)
+
+    for segment in raw_segments:
+        _parse_segment(segment)
 
     return parsed_lines, alerts
 
@@ -463,6 +502,69 @@ def _load_outer_cover_measure_font():
         return None
 
 
+@lru_cache(maxsize=None)
+def _load_label4_measure_font(css_class: str):
+    if ImageFont is None:
+        return None
+    font_path = MATERIAL_MEASURE_FONT_PATHS.get(css_class)
+    if not font_path or not os.path.exists(font_path):
+        return None
+    try:
+        return ImageFont.truetype(font_path, MATERIAL_MEASURE_FONT_SIZE)
+    except Exception:
+        return None
+
+
+def _measure_label4_text_width(text: str, css_class: str) -> float:
+    normalized = text.strip()
+    if not normalized:
+        return 0.0
+
+    font = _load_label4_measure_font(css_class)
+    font_size = MATERIAL_FONT_SIZE_BY_CLASS.get(css_class, 13.4)
+    if font is not None:
+        try:
+            return float(font.getlength(normalized)) * (font_size / MATERIAL_MEASURE_FONT_SIZE)
+        except Exception:
+            pass
+
+    fallback_char_width = MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS.get(css_class, 0.34)
+    return len(normalized) * fallback_char_width * font_size
+
+
+def _wrap_material_lines(
+    lines: List[Tuple[str, str]],
+    max_width: float = MATERIAL_TEXT_MAX_WIDTH,
+) -> List[Tuple[str, str]]:
+    wrapped: List[Tuple[str, str]] = []
+
+    for text, css_class in lines:
+        normalized = re.sub(r"\s+", " ", text.strip())
+        if not normalized:
+            continue
+
+        if _measure_label4_text_width(normalized, css_class) <= max_width:
+            wrapped.append((normalized, css_class))
+            continue
+
+        words = normalized.split(" ")
+        if len(words) <= 1:
+            wrapped.append((normalized, css_class))
+            continue
+
+        current = words[0]
+        for word in words[1:]:
+            candidate = f"{current} {word}"
+            if _measure_label4_text_width(candidate, css_class) <= max_width:
+                current = candidate
+            else:
+                wrapped.append((current, css_class))
+                current = word
+        wrapped.append((current, css_class))
+
+    return wrapped
+
+
 def _measure_outer_cover_text_width(text: str) -> float:
     font = _load_outer_cover_measure_font()
     if font is not None:
@@ -619,6 +721,11 @@ def generate_label4_from_dataframe(
             warnings.append(f"{identifier} label4 is not generated, reason: no valid material lines found.")
             continue
 
+        wrapped_material_lines = _wrap_material_lines(material_lines)
+        if not wrapped_material_lines:
+            warnings.append(f"{identifier} label4 is not generated, reason: no valid wrapped material lines found.")
+            continue
+
         icon_keys, washing_text_lines, washing_alerts = _parse_washing_guides(washing_guide_text)
         if washing_alerts:
             for alert in washing_alerts:
@@ -654,7 +761,7 @@ def generate_label4_from_dataframe(
 
         material_end_y = _last_line_baseline(
             MATERIAL_START_Y,
-            len(material_lines),
+            len(wrapped_material_lines),
             MATERIAL_LINE_HEIGHT,
         )
         washing_text_y = material_end_y + SECTION_SPACING
@@ -684,7 +791,7 @@ def generate_label4_from_dataframe(
 
         svg_content = _replace_label4_variables(
             template_content,
-            material_tspans=_build_material_tspans(material_lines),
+            material_tspans=_build_material_tspans(wrapped_material_lines),
             washing_text_tspans=_build_simple_tspans(washing_text_lines, line_height=11.58),
             washing_icons=_build_washing_icons(icon_keys, icon_y=icon_y),
             distributor_tspans=_build_simple_tspans(wrapped_distributor_lines, line_height=DISTRIBUTOR_LINE_HEIGHT),
