@@ -13,6 +13,7 @@ PARTS_DICT = {
     "ARM CUSHION": "Accoudoir",
     "SUPPORT BAR": "Barre de soutien",
     "SEAT BASE": "Base de siège",
+    "HEADBOARD EXTENSION": "Prolongement de tête de lit"
 }
 
 # Material terms - English (normalized uppercase) -> French translation
