@@ -93,6 +93,7 @@ MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS = {
 }
 WASH_GUIDES_WITHOUT_ICONS = {
     "spot_clean",
+    "spot_clean_only",
     "note_washing_reduces_spill_resistant_finish_over_time_spot_clean_recommended",
     "professional_cleaning_only",
 }
