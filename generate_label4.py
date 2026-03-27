@@ -54,12 +54,14 @@ DISTRIBUTOR_LINE_HEIGHT = 8.4
 DISTRIBUTOR_WRAP_MAX_CHARS = 42
 MATERIAL_WRAP_MAX_CHARS = 34
 MATERIAL_TEXT_MAX_WIDTH = LABEL_INNER_WIDTH - 2.0
+WASH_TEXT_MAX_WIDTH = LABEL_INNER_WIDTH - 2.0
 
 MATERIAL_CLASS = "cls-25"
 PART_TITLE_BOLD_CLASS = "cls-20"
 PART_TITLE_FRENCH_BOLD_CLASS = "cls-19"
 SUB_PART_TITLE_CLASS = "cls-25"
 DEFAULT_MATERIAL_CLASS = "cls-25"
+WASH_TEXT_CLASS = "cls-18"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WASHING_ICON_DIR = os.path.join(SCRIPT_DIR, "template", "icons")
@@ -74,6 +76,7 @@ MATERIAL_MEASURE_FONT_PATHS = {
     MATERIAL_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
     SUB_PART_TITLE_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
     DEFAULT_MATERIAL_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
+    WASH_TEXT_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-Medium.ttf"),
     PART_TITLE_BOLD_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf"),
     PART_TITLE_FRENCH_BOLD_CLASS: os.path.join(SCRIPT_DIR, "font", "AvenirNextCondensed-DemiBold.ttf"),
 }
@@ -81,6 +84,7 @@ MATERIAL_FONT_SIZE_BY_CLASS = {
     MATERIAL_CLASS: 13.4,
     SUB_PART_TITLE_CLASS: 13.4,
     DEFAULT_MATERIAL_CLASS: 13.4,
+    WASH_TEXT_CLASS: 8.04,
     PART_TITLE_BOLD_CLASS: 13.4,
     PART_TITLE_FRENCH_BOLD_CLASS: 13.4,
 }
@@ -88,6 +92,7 @@ MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS = {
     MATERIAL_CLASS: 0.34,
     SUB_PART_TITLE_CLASS: 0.34,
     DEFAULT_MATERIAL_CLASS: 0.34,
+    WASH_TEXT_CLASS: 0.34,
     PART_TITLE_BOLD_CLASS: 0.34,
     PART_TITLE_FRENCH_BOLD_CLASS: 0.34,
 }
@@ -537,6 +542,59 @@ def _measure_label4_text_width(text: str, css_class: str) -> float:
     return len(normalized) * fallback_char_width * font_size
 
 
+def _split_label4_long_token(token: str, css_class: str, max_width: float) -> List[str]:
+    chunks: List[str] = []
+    current = ""
+
+    for char in token:
+        candidate = f"{current}{char}"
+        if current and _measure_label4_text_width(candidate, css_class) > max_width:
+            chunks.append(current)
+            current = char
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+
+    return chunks or [token]
+
+
+def _wrap_label4_text_line(text: str, css_class: str, max_width: float) -> List[str]:
+    normalized = re.sub(r"\s+", " ", text.strip())
+    if not normalized:
+        return []
+
+    if _measure_label4_text_width(normalized, css_class) <= max_width:
+        return [normalized]
+
+    wrapped: List[str] = []
+    current = ""
+
+    for token in normalized.split(" "):
+        if not token:
+            continue
+
+        if _measure_label4_text_width(token, css_class) > max_width:
+            if current:
+                wrapped.append(current)
+                current = ""
+            wrapped.extend(_split_label4_long_token(token, css_class, max_width))
+            continue
+
+        candidate = token if not current else f"{current} {token}"
+        if _measure_label4_text_width(candidate, css_class) <= max_width:
+            current = candidate
+        else:
+            wrapped.append(current)
+            current = token
+
+    if current:
+        wrapped.append(current)
+
+    return wrapped
+
+
 def _wrap_material_lines(
     lines: List[Tuple[str, str]],
     max_width: float = MATERIAL_TEXT_MAX_WIDTH,
@@ -544,29 +602,16 @@ def _wrap_material_lines(
     wrapped: List[Tuple[str, str]] = []
 
     for text, css_class in lines:
-        normalized = re.sub(r"\s+", " ", text.strip())
-        if not normalized:
-            continue
+        for line in _wrap_label4_text_line(text, css_class, max_width):
+            wrapped.append((line, css_class))
 
-        if _measure_label4_text_width(normalized, css_class) <= max_width:
-            wrapped.append((normalized, css_class))
-            continue
+    return wrapped
 
-        words = normalized.split(" ")
-        if len(words) <= 1:
-            wrapped.append((normalized, css_class))
-            continue
 
-        current = words[0]
-        for word in words[1:]:
-            candidate = f"{current} {word}"
-            if _measure_label4_text_width(candidate, css_class) <= max_width:
-                current = candidate
-            else:
-                wrapped.append((current, css_class))
-                current = word
-        wrapped.append((current, css_class))
-
+def _wrap_label4_washing_text_lines(lines: List[str]) -> List[str]:
+    wrapped: List[str] = []
+    for line in lines:
+        wrapped.extend(_wrap_label4_text_line(line, WASH_TEXT_CLASS, WASH_TEXT_MAX_WIDTH))
     return wrapped
 
 
@@ -771,7 +816,8 @@ def generate_label4_from_dataframe(
         )
         washing_text_y = material_end_y + SECTION_SPACING
 
-        washing_line_count = max(len(washing_text_lines), 1)
+        wrapped_washing_text_lines = _wrap_label4_washing_text_lines(washing_text_lines)
+        washing_line_count = max(len(wrapped_washing_text_lines), 1)
         washing_end_y = _last_line_baseline(
             washing_text_y,
             washing_line_count,
@@ -797,7 +843,10 @@ def generate_label4_from_dataframe(
         svg_content = _replace_label4_variables(
             template_content,
             material_tspans=_build_material_tspans(wrapped_material_lines),
-            washing_text_tspans=_build_simple_tspans(washing_text_lines, line_height=11.58),
+            washing_text_tspans=_build_simple_tspans(
+                wrapped_washing_text_lines,
+                line_height=WASH_LINE_HEIGHT,
+            ),
             washing_icons=_build_washing_icons(icon_keys, icon_y=icon_y),
             distributor_tspans=_build_simple_tspans(wrapped_distributor_lines, line_height=DISTRIBUTOR_LINE_HEIGHT),
             made_for_company=made_for_company,

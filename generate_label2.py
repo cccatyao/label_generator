@@ -10,11 +10,44 @@ from both CLI and Streamlit web interface.
 import os
 import re
 import io
+import platform
 import pandas as pd
 from typing import List, Tuple, Optional
 
 # Import validation functions from centralized module
 from validation import contains_non_english_chars
+
+
+def _configure_cairo_library_path():
+    """Help cairocffi find Homebrew cairo libraries on macOS."""
+    if platform.system() != "Darwin":
+        return
+
+    existing = [
+        path
+        for path in os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", "").split(":")
+        if path
+    ]
+
+    preferred_dirs = []
+    if platform.machine().lower() == "arm64":
+        preferred_dirs.append("/opt/homebrew/lib")
+    elif platform.machine().lower() in {"x86_64", "amd64"}:
+        preferred_dirs.append("/usr/local/lib")
+
+    for candidate in ("/opt/homebrew/lib", "/usr/local/lib"):
+        if candidate not in preferred_dirs:
+            preferred_dirs.append(candidate)
+
+    updated = [
+        candidate
+        for candidate in preferred_dirs
+        if os.path.isdir(candidate) and candidate not in existing
+    ] + existing
+
+    if updated:
+        os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = ":".join(updated)
+
 
 # Configure fontconfig to use local font folder before importing cairosvg
 # This ensures the Avenir Next Condensed font is available even when not installed system-wide
@@ -107,14 +140,15 @@ def _configure_fontconfig():
     except Exception:
         pass  # fc-cache may not be available
 
-# Configure fonts before importing cairosvg
+# Configure native library and fonts before importing cairosvg
+_configure_cairo_library_path()
 _configure_fontconfig()
 
 # Try to import cairosvg for PDF conversion
 try:
     import cairosvg
     HAS_CAIROSVG = True
-except ImportError:
+except (ImportError, OSError):
     HAS_CAIROSVG = False
 
 

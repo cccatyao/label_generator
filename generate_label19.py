@@ -26,6 +26,106 @@ _configure_fontconfig()
 if HAS_CAIROSVG:
     import cairosvg
 
+try:
+    from PIL import ImageFont
+except Exception:  # pragma: no cover - optional dependency in some runtimes
+    ImageFont = None
+
+
+LABEL19_TEXT_MAX_WIDTH = 358.0
+LABEL19_MEASURE_FONT_SIZE = 240
+LABEL19_TEXT_FONT_SIZE = 12.19
+LABEL19_FONT_PATHS = {
+    "cls-5": os.path.join(os.path.dirname(os.path.abspath(__file__)), "font", "AvenirNextCondensed-Medium.ttf"),
+    "cls-12": os.path.join(os.path.dirname(os.path.abspath(__file__)), "font", "AvenirNextCondensed-DemiBold.ttf"),
+}
+LABEL19_FALLBACK_CHAR_WIDTH = {
+    "cls-5": 0.34,
+    "cls-12": 0.34,
+}
+
+
+def _load_label19_measure_font(css_class: str):
+    if ImageFont is None:
+        return None
+    font_path = LABEL19_FONT_PATHS.get(css_class)
+    if not font_path or not os.path.exists(font_path):
+        return None
+    try:
+        return ImageFont.truetype(font_path, LABEL19_MEASURE_FONT_SIZE)
+    except Exception:
+        return None
+
+
+def _measure_label19_text_width(text: str, css_class: str) -> float:
+    normalized = text.strip()
+    if not normalized:
+        return 0.0
+
+    font = _load_label19_measure_font(css_class)
+    if font is not None:
+        try:
+            return float(font.getlength(normalized)) * (
+                LABEL19_TEXT_FONT_SIZE / LABEL19_MEASURE_FONT_SIZE
+            )
+        except Exception:
+            pass
+
+    return len(normalized) * LABEL19_FALLBACK_CHAR_WIDTH.get(css_class, 0.34) * LABEL19_TEXT_FONT_SIZE
+
+
+def _split_label19_long_token(token: str, css_class: str, max_width: float) -> List[str]:
+    chunks: List[str] = []
+    current = ""
+
+    for char in token:
+        candidate = f"{current}{char}"
+        if current and _measure_label19_text_width(candidate, css_class) > max_width:
+            chunks.append(current)
+            current = char
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+
+    return chunks or [token]
+
+
+def _wrap_label19_line(text: str, css_class: str, max_width: float = LABEL19_TEXT_MAX_WIDTH) -> List[str]:
+    normalized = re.sub(r"\s+", " ", text.strip())
+    if not normalized:
+        return []
+
+    if _measure_label19_text_width(normalized, css_class) <= max_width:
+        return [normalized]
+
+    wrapped: List[str] = []
+    current = ""
+
+    for token in normalized.split(" "):
+        if not token:
+            continue
+
+        if _measure_label19_text_width(token, css_class) > max_width:
+            if current:
+                wrapped.append(current)
+                current = ""
+            wrapped.extend(_split_label19_long_token(token, css_class, max_width))
+            continue
+
+        candidate = token if not current else f"{current} {token}"
+        if _measure_label19_text_width(candidate, css_class) <= max_width:
+            current = candidate
+        else:
+            wrapped.append(current)
+            current = token
+
+    if current:
+        wrapped.append(current)
+
+    return wrapped
+
 
 def generate_label19_svg_content(parts: List[Dict]) -> Tuple[str, float]:
     """
@@ -53,21 +153,23 @@ def generate_label19_svg_content(parts: List[Dict]) -> Tuple[str, float]:
         
         # Add part title (centered)
         if part['title']:
-            tspan_elements.append(
-                f'<tspan class="{TITLE_CLASS}">'
-                f'<tspan x="0" y="{current_y:.2f}" text-anchor="middle">{part["title"]}</tspan>'
-                f'</tspan>'
-            )
-            current_y += LINE_HEIGHT
+            for line in _wrap_label19_line(part["title"], TITLE_CLASS):
+                tspan_elements.append(
+                    f'<tspan class="{TITLE_CLASS}">'
+                    f'<tspan x="0" y="{current_y:.2f}" text-anchor="middle">{line}</tspan>'
+                    f'</tspan>'
+                )
+                current_y += LINE_HEIGHT
         
         # Add materials (centered)
         for material in part['materials']:
-            tspan_elements.append(
-                f'<tspan class="{MATERIAL_CLASS}">'
-                f'<tspan x="0" y="{current_y:.2f}" text-anchor="middle">{material["text"]}</tspan>'
-                f'</tspan>'
-            )
-            current_y += LINE_HEIGHT
+            for line in _wrap_label19_line(material["text"], MATERIAL_CLASS):
+                tspan_elements.append(
+                    f'<tspan class="{MATERIAL_CLASS}">'
+                    f'<tspan x="0" y="{current_y:.2f}" text-anchor="middle">{line}</tspan>'
+                    f'</tspan>'
+                )
+                current_y += LINE_HEIGHT
     
     return ''.join(tspan_elements), current_y
 
