@@ -11,6 +11,7 @@ import os
 import re
 import io
 import platform
+from functools import lru_cache
 import pandas as pd
 from typing import List, Tuple, Optional
 
@@ -151,6 +152,113 @@ try:
 except (ImportError, OSError):
     HAS_CAIROSVG = False
 
+try:
+    from PIL import ImageFont
+except Exception:  # pragma: no cover - optional dependency in some runtimes
+    ImageFont = None
+
+
+LABEL2_INNER_WIDTH = 182.37
+LABEL2_TEXT_MAX_WIDTH = LABEL2_INNER_WIDTH - 2.0
+LABEL2_MEASURE_FONT_SIZE = 240
+LABEL2_TEXT_FONT_SIZE = 13.32
+LABEL2_FALLBACK_CHAR_WIDTH = 0.34
+LABEL2_MEASURE_FONT_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "font",
+    "AvenirNextCondensed-DemiBold.ttf",
+)
+
+
+@lru_cache(maxsize=1)
+def _load_label2_measure_font():
+    if ImageFont is None or not os.path.exists(LABEL2_MEASURE_FONT_PATH):
+        return None
+    try:
+        return ImageFont.truetype(LABEL2_MEASURE_FONT_PATH, LABEL2_MEASURE_FONT_SIZE)
+    except Exception:
+        return None
+
+
+def _measure_label2_text_width(text: str) -> float:
+    normalized = text.strip()
+    if not normalized:
+        return 0.0
+
+    font = _load_label2_measure_font()
+    if font is not None:
+        try:
+            return float(font.getlength(normalized)) * (
+                LABEL2_TEXT_FONT_SIZE / LABEL2_MEASURE_FONT_SIZE
+            )
+        except Exception:
+            pass
+
+    return len(normalized) * LABEL2_FALLBACK_CHAR_WIDTH * LABEL2_TEXT_FONT_SIZE
+
+
+def _split_label2_long_token(token: str, max_width: float) -> List[str]:
+    chunks: List[str] = []
+    current = ""
+
+    for char in token:
+        candidate = f"{current}{char}"
+        if current and _measure_label2_text_width(candidate) > max_width:
+            chunks.append(current)
+            current = char
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+
+    return chunks or [token]
+
+
+def _wrap_label2_line(text: str, max_width: float = LABEL2_TEXT_MAX_WIDTH) -> List[str]:
+    normalized = re.sub(r"\s+", " ", text.strip())
+    if not normalized:
+        return []
+
+    if _measure_label2_text_width(normalized) <= max_width:
+        return [normalized]
+
+    wrapped: List[str] = []
+    current = ""
+
+    for token in normalized.split(" "):
+        if not token:
+            continue
+
+        if _measure_label2_text_width(token) > max_width:
+            if current:
+                wrapped.append(current)
+                current = ""
+            wrapped.extend(_split_label2_long_token(token, max_width))
+            continue
+
+        candidate = token if not current else f"{current} {token}"
+        if _measure_label2_text_width(candidate) <= max_width:
+            current = candidate
+        else:
+            wrapped.append(current)
+            current = token
+
+    if current:
+        wrapped.append(current)
+
+    return wrapped
+
+
+def _wrap_label2_text_lines(text: str) -> List[str]:
+    wrapped_lines: List[str] = []
+    for line in text.replace("\\n", "\n").split("\n"):
+        if not line.strip():
+            wrapped_lines.append("")
+            continue
+        wrapped_lines.extend(_wrap_label2_line(line))
+    return wrapped_lines
+
 
 def create_centered_tspan_elements(text: str, line_height: float = 15.99) -> str:
     """
@@ -163,7 +271,7 @@ def create_centered_tspan_elements(text: str, line_height: float = 15.99) -> str
     Returns:
         String containing tspan elements
     """
-    lines = text.replace('\\n', '\n').split('\n')
+    lines = _wrap_label2_text_lines(text)
     
     tspan_elements = []
     current_y = 0
