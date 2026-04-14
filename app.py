@@ -43,7 +43,7 @@ st.markdown("""
 
 **Expected Excel format:**
 - Column 1: Product code (used for filename)
-- Column 2: Material composition text (max 15 lines)
+- Column 2: Material composition text
 - Column 3: REG. No
 - Column 4: PER. No (optional)
 - Column 5: Firm
@@ -128,8 +128,11 @@ if uploaded_file is not None:
         # Generate button
         if st.button("🚀 Generate Labels", type="primary", use_container_width=True):
             with st.spinner("Generating labels..."):
-                # Import validation function from centralized validation module
-                from validation import validate_record_for_labels
+                # Import validation functions from centralized validation module
+                from validation import (
+                    validate_record_common,
+                    validate_record_for_label19,
+                )
                 
                 all_pdf_files = []
                 all_warnings = []
@@ -144,7 +147,8 @@ if uploaded_file is not None:
                 per_no_col = columns[3] if len(columns) > 3 else None
                 
                 # First pass: validate all records
-                valid_indices = []
+                valid_indices_label2 = []
+                valid_indices_label19 = []
                 for index, row in df.iterrows():
                     materials_text = str(row[materials_col]) if pd.notna(row[materials_col]) else ""
                     reg_no = str(row[reg_no_col]) if pd.notna(row[reg_no_col]) else ""
@@ -155,34 +159,45 @@ if uploaded_file is not None:
                     if per_no_col and per_no_col in row:
                         per_no = str(row[per_no_col]) if pd.notna(row[per_no_col]) else ""
                     
-                    # Validate record for both labels
-                    is_valid, validation_errors = validate_record_for_labels(
+                    # Validate rules shared by Label 2 and Label 19.
+                    is_valid_common, validation_errors = validate_record_common(
                         materials_text, reg_no, per_no, identifier
                     )
-                    
-                    if not is_valid:
+
+                    if not is_valid_common:
                         # Add all validation errors as warnings
                         for error in validation_errors:
                             all_warnings.append(error)
+                        continue
+
+                    valid_indices_label2.append(index)
+
+                    is_valid_label19, label19_errors = validate_record_for_label19(
+                        materials_text, reg_no, per_no, identifier
+                    )
+                    if is_valid_label19:
+                        valid_indices_label19.append(index)
                     else:
-                        valid_indices.append(index)
-                
-                # Create a filtered dataframe with only valid records
-                if valid_indices:
-                    df_valid = df.iloc[valid_indices].reset_index(drop=True)
-                    
+                        all_warnings.extend(label19_errors)
+
+                if valid_indices_label2:
+                    df_valid_label2 = df.iloc[valid_indices_label2].reset_index(drop=True)
+
                     # Generate Label 2 for valid records only
                     pdf_files_2, warnings_2 = generate_label2(
                         template2_content, 
-                        df_valid
+                        df_valid_label2
                     )
                     all_pdf_files.extend(pdf_files_2)
                     all_warnings.extend(warnings_2)
-                    
+
+                if valid_indices_label19:
+                    df_valid_label19 = df.iloc[valid_indices_label19].reset_index(drop=True)
+
                     # Generate Label 19 for valid records only
                     pdf_files_19, warnings_19 = generate_label19(
                         template19_content,
-                        df_valid
+                        df_valid_label19
                     )
                     all_pdf_files.extend(pdf_files_19)
                     all_warnings.extend(warnings_19)

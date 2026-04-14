@@ -146,23 +146,25 @@ def parse_material_text(material_text: str) -> Tuple[List[Dict], List[str], bool
     return parts, alerts, has_unmapped_terms
 
 
-def validate_record_for_labels(
+MAX_LABEL19_MATERIAL_LINES = 15
+
+
+def validate_record_common(
     materials_text: str,
     reg_no: str,
     per_no: str,
     identifier: str
 ) -> Tuple[bool, List[str]]:
     """
-    Validate a record against combined rules for both Label 2 and Label 19.
+    Validate rules shared by Label 2 and Label 19.
     
     Validation Rules:
     1. Material text must not be empty
     2. REG number must not be empty
-    3. Material text must be ≤ 15 lines
-    4. Material text must be English (no non-English characters)
-    5. REG number must be English
-    6. PER number (if present) must be English
-    7. All parts/materials must exist in term_config.py dictionary
+    3. Material text must be English (no non-English characters)
+    4. REG number must be English
+    5. PER number (if present) must be English
+    6. All parts/materials must exist in term_config.py dictionary
     
     Args:
         materials_text: Material composition text
@@ -176,8 +178,6 @@ def validate_record_for_labels(
         - error_messages: List of validation error messages
     """
     errors = []
-    MAX_MATERIAL_LINES = 15
-    
     # Rule 1 & 2: Check if required fields are present
     if not materials_text or not reg_no:
         if not materials_text:
@@ -185,37 +185,77 @@ def validate_record_for_labels(
         if not reg_no:
             errors.append(f"{identifier} labels are not generated, reason: REG number is empty.")
         return False, errors
-    
-    # Rule 3: Check material text line count
-    material_lines = materials_text.replace('\\n', '\n').split('\n')
-    non_empty_lines = [line for line in material_lines if line.strip()]
-    if len(non_empty_lines) > MAX_MATERIAL_LINES:
-        errors.append(f"{identifier} labels are not generated, reason: material text larger than {MAX_MATERIAL_LINES} lines.")
-        return False, errors
-    
-    # Rule 4: Validate English input for material_text
+
+    # Rule 3: Validate English input for material_text
     if contains_non_english_chars(materials_text):
         errors.append(f"{identifier} labels are not generated, reason: material text is not English input.")
         return False, errors
-    
-    # Rule 5: Validate English input for reg_no
+
+    # Rule 4: Validate English input for reg_no
     if contains_non_english_chars(reg_no):
         errors.append(f"{identifier} labels are not generated, reason: REG # is not English input.")
         return False, errors
-    
-    # Rule 6: Validate English input for per_no (if present)
+
+    # Rule 5: Validate English input for per_no (if present)
     if per_no and contains_non_english_chars(per_no):
         errors.append(f"{identifier} labels are not generated, reason: PER # is not English input.")
         return False, errors
-    
-    # Rule 7: Validate that all parts/materials are in dictionary (for Label 19)
+
+    # Rule 6: Validate that all parts/materials are in dictionary
     parts, parse_alerts, has_unmapped_terms = parse_material_text(materials_text)
-    
+
     if has_unmapped_terms:
         # Add specific errors about unmapped terms
         for alert in parse_alerts:
             errors.append(f"{identifier} labels are not generated, reason: {alert}")
         return False, errors
-    
+
     # All validations passed
     return True, []
+
+
+def _material_text_has_too_many_lines(materials_text: str) -> bool:
+    material_lines = materials_text.replace('\\n', '\n').split('\n')
+    non_empty_lines = [line for line in material_lines if line.strip()]
+    return len(non_empty_lines) > MAX_LABEL19_MATERIAL_LINES
+
+
+def validate_record_for_label2(
+    materials_text: str,
+    reg_no: str,
+    per_no: str,
+    identifier: str
+) -> Tuple[bool, List[str]]:
+    """Validate a record for Label 2 generation."""
+    return validate_record_common(materials_text, reg_no, per_no, identifier)
+
+
+def validate_record_for_label19(
+    materials_text: str,
+    reg_no: str,
+    per_no: str,
+    identifier: str
+) -> Tuple[bool, List[str]]:
+    """Validate a record for Label 19 generation."""
+    is_valid, errors = validate_record_common(materials_text, reg_no, per_no, identifier)
+    if not is_valid:
+        return False, errors
+
+    if _material_text_has_too_many_lines(materials_text):
+        return False, [
+            f"{identifier} label19 is not generated, reason: material text larger than {MAX_LABEL19_MATERIAL_LINES} lines."
+        ]
+
+    return True, []
+
+
+def validate_record_for_labels(
+    materials_text: str,
+    reg_no: str,
+    per_no: str,
+    identifier: str
+) -> Tuple[bool, List[str]]:
+    """
+    Backward-compatible validator that preserves the original strict behavior.
+    """
+    return validate_record_for_label19(materials_text, reg_no, per_no, identifier)

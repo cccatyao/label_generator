@@ -163,6 +163,14 @@ LABEL2_TEXT_MAX_WIDTH = LABEL2_INNER_WIDTH - 2.0
 LABEL2_MEASURE_FONT_SIZE = 240
 LABEL2_TEXT_FONT_SIZE = 13.32
 LABEL2_FALLBACK_CHAR_WIDTH = 0.34
+LABEL2_LINE_HEIGHT = 15.99
+LABEL2_BASE_SVG_HEIGHT = 841.89
+LABEL2_BASE_LABEL_HEIGHT = 568.69
+LABEL2_BASE_LABEL_BOTTOM_Y = 593.99
+LABEL2_MATERIAL_START_Y = 124.6
+LABEL2_MATERIAL_END_Y = 353.08
+LABEL2_MATERIAL_TOP_PADDING = 6.0
+LABEL2_MATERIAL_BOTTOM_PADDING = 10.0
 LABEL2_MEASURE_FONT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "font",
@@ -260,7 +268,11 @@ def _wrap_label2_text_lines(text: str) -> List[str]:
     return wrapped_lines
 
 
-def create_centered_tspan_elements(text: str, line_height: float = 15.99) -> str:
+def create_centered_tspan_elements(
+    text: str,
+    line_height: float = LABEL2_LINE_HEIGHT,
+    top_padding: float = LABEL2_MATERIAL_TOP_PADDING,
+) -> str:
     """
     Create tspan elements from multi-line text with each line horizontally centered.
     
@@ -274,7 +286,7 @@ def create_centered_tspan_elements(text: str, line_height: float = 15.99) -> str
     lines = _wrap_label2_text_lines(text)
     
     tspan_elements = []
-    current_y = 0
+    current_y = top_padding
     
     for i, line in enumerate(lines):
         line_content = line.strip()
@@ -292,6 +304,111 @@ def create_centered_tspan_elements(text: str, line_height: float = 15.99) -> str
         current_y += line_height
     
     return ''.join(tspan_elements)
+
+
+def _calculate_label2_layout_offset(
+    material_text: str,
+    line_height: float = LABEL2_LINE_HEIGHT,
+) -> float:
+    wrapped_line_count = len(_wrap_label2_text_lines(material_text))
+    if wrapped_line_count <= 1:
+        return 0.0
+
+    available_height = LABEL2_MATERIAL_END_Y - LABEL2_MATERIAL_START_Y
+    used_height = (
+        LABEL2_MATERIAL_TOP_PADDING
+        + (wrapped_line_count - 1) * line_height
+        + LABEL2_MATERIAL_BOTTOM_PADDING
+    )
+    return round(max(0.0, used_height - available_height), 2)
+
+
+def _wrap_label2_fragment(
+    svg_content: str,
+    start_marker: str,
+    end_marker: str,
+    offset: float,
+) -> str:
+    if offset <= 0:
+        return svg_content
+
+    start_index = svg_content.index(start_marker)
+    end_index = svg_content.index(end_marker, start_index)
+    fragment = svg_content[start_index:end_index]
+    wrapped_fragment = (
+        f'   <g transform="translate(0 {offset:.2f})">\n'
+        f"{fragment}"
+        "   </g>\n"
+    )
+    return svg_content[:start_index] + wrapped_fragment + svg_content[end_index:]
+
+
+def _resize_label2_canvas(svg_content: str, offset: float) -> str:
+    if offset <= 0:
+        return svg_content
+
+    svg_height = f"{LABEL2_BASE_SVG_HEIGHT + offset:.2f}"
+    label_height = f"{LABEL2_BASE_LABEL_HEIGHT + offset:.2f}"
+    label_bottom_y = f"{LABEL2_BASE_LABEL_BOTTOM_Y + offset:.2f}"
+
+    svg_content = svg_content.replace(
+        f'viewBox="0 0 988.11 {LABEL2_BASE_SVG_HEIGHT:.2f}"',
+        f'viewBox="0 0 988.11 {svg_height}"',
+        1,
+    )
+    svg_content = svg_content.replace(
+        f'height="{LABEL2_BASE_SVG_HEIGHT:.2f}"',
+        f'height="{svg_height}"',
+    )
+    svg_content = svg_content.replace(
+        f'y2="{LABEL2_BASE_LABEL_BOTTOM_Y:.2f}"',
+        f'y2="{label_bottom_y}"',
+        2,
+    )
+    svg_content = svg_content.replace(
+        f'width="360.06" height="{LABEL2_BASE_LABEL_HEIGHT:.2f}" id="rect222"',
+        f'width="360.06" height="{label_height}" id="rect222"',
+        1,
+    )
+    return svg_content
+
+
+def _extend_label2_layout(svg_content: str, offset: float) -> str:
+    if offset <= 0:
+        return svg_content
+
+    svg_content = _resize_label2_canvas(svg_content, offset)
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<line class="cls-17" x1="445.21" y1="353.08" x2="627.58" y2="353.08" id="line100" />',
+        '<line class="cls-17" x1="445.07" y1="75.11" x2="628.85" y2="75.11" id="line101" />',
+        offset,
+    )
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<line class="cls-17" x1="445.01" y1="397.83" x2="627.92" y2="397.83" id="line102" />',
+        '<line class="cls-20" x1="626.8" y1="260.47" x2="805.25" y2="260.47" id="line219" />',
+        offset,
+    )
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<text class="cls-63" transform="translate(536.5 375.45)" text-anchor="middle" dominant-baseline="middle"',
+        '<rect class="cls-18" x="392.83" width="595.28"',
+        offset,
+    )
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<text class="cls-62" transform="translate(651.2 378.42)" id="text387">',
+        '<text class="cls-63" transform="translate(633.82 277.73)" id="text646">',
+        offset,
+    )
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<text class="cls-63" transform="translate(508.49 479.27)" id="text743">',
+        '</svg>',
+        offset,
+    )
+    return svg_content
 
 
 def replace_template_variables(svg_content: str, material_text: str, reg_number: str, per_number: str = "", firm: str = "", origin: str = "") -> str:
@@ -324,7 +441,7 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     
     svg_content = svg_content.replace('{{code_number}}', code_number_content)
     
-    material_tspans = create_centered_tspan_elements(material_text, line_height=15.99)
+    material_tspans = create_centered_tspan_elements(material_text, line_height=LABEL2_LINE_HEIGHT)
     svg_content = svg_content.replace('{{material_text}}', material_tspans)
     
     # Handle firm name
@@ -335,8 +452,9 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     origin_map = {'CN': 'CHINA', 'VN': 'VIETNAM', 'KHM': 'CAMBODIA'}
     origin_country = origin_map.get(origin_clean, origin_clean)
     svg_content = svg_content.replace('{{origin_country}}', origin_country)
-    
-    return svg_content
+
+    layout_offset = _calculate_label2_layout_offset(material_text)
+    return _extend_label2_layout(svg_content, layout_offset)
 
 
 def sanitize_filename(text: str) -> str:

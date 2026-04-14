@@ -15,13 +15,8 @@ data/term_dictionary.xlsx
 font/fonts.conf
 data/law_label_data.xlsx
 data/law_label_data.xlsx
-tests/test_label4_header_titles.py
-tests/test_label4_material_mapping.py
-tests/test_label4_washing_icons.py
-tests/__pycache__/test_label4_header_titles.cpython-311.pyc
-tests/__pycache__/test_label4_material_mapping.cpython-311.pyc
-tests/__pycache__/test_label4_washing_icons.cpython-311.pyc
+tests/
 __pycache__/generate_label2.cpython-311.pyc
-tests/__pycache__/test_label4_material_mapping.cpython-311-pytest-8.3.3.pyc
 .gitignore
 .gitignore
+.codex/environments/environment.toml
