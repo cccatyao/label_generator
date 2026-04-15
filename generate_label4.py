@@ -97,10 +97,16 @@ MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS = {
     PART_TITLE_FRENCH_BOLD_CLASS: 0.34,
 }
 WASH_GUIDES_WITHOUT_ICONS = {
+    "air_dry",
+    "do_not_place_cover_or_foam_in_washer_or_dryer",
+    "do_not_remove_cover",
+    "do_not_use_fabric_softeners",
+    "lay_flat_to_dry",
     "spot_clean",
     "spot_clean_only",
     "note_washing_reduces_spill_resistant_finish_over_time_spot_clean_recommended",
     "professional_cleaning_only",
+    "wash_separately",
 }
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"

@@ -13,20 +13,27 @@ PARTS_DICT = {
     "ARM CUSHION": "Accoudoir",
     "SUPPORT BAR": "Barre de soutien",
     "SEAT BASE": "Base de siège",
-    "HEADBOARD EXTENSION": "Prolongement de tête de lit"
+    "HEADBOARD EXTENSION": "Prolongement de tête de lit",
+    "TOP FABRIC": "Tissu du dessus",
+    "BORDER FABRIC": "Tissu de bordure",
 }
 
 # Material terms - English (normalized uppercase) -> French translation
 MATERIALS_DICT = {
+    "VISCOELASTIC POLYURETHANE FOAM": "Mousse de polyuréthane viscoélastique",
     "POLYURETHANE FOAM PAD": "Tampon en mousse de polyuréthane",
+    "POLYURETHANE FOAM": "Mousse de polyuréthane",
     "POLYESTER FIBER BATTING": "La ouate de fibre de polyester",
     "COIL POCKET SPRING": "Ensemble de ressorts enroulés",
+    "INNERSPRING UNIT": "Unité de ressorts",
     "POLYESTER FIBER": "Fibre de polyester",
     "PVC BOARD": "Planche de PVC",
     "WATERFOWL FEATHERS": "Les plumes de canard",
     "EXPANDED POLYTHYLENE FOAM": "Mousse de polyéthylène expansé",
-    "FELT":"Feutre",
-    "IRON PAD":"Plaque de fixation",
+    "LYOCELL": "Lyocell",
+    "COTTON CANVAS": "Toile de coton",
+    "FELT": "Feutre",
+    "IRON PAD": "Plaque de fixation",
 }
 
 # Label 4 title mapping:
