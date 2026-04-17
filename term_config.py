@@ -18,6 +18,14 @@ PARTS_DICT = {
     "BORDER FABRIC": "Tissu de bordure",
 }
 
+# Origin country mapping
+ORIGIN_COUNTRY_MAP = {
+    "CN": "CHINA",
+    "VN": "VIETNAM",
+    "KHM": "CAMBODIA",
+    "US": "UNITED STATES",
+}
+
 # Material terms - English (normalized uppercase) -> French translation
 MATERIALS_DICT = {
     "VISCOELASTIC POLYURETHANE FOAM": "Mousse de polyuréthane viscoélastique",

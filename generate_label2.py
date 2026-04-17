@@ -17,6 +17,7 @@ from typing import List, Tuple, Optional
 
 # Import validation functions from centralized module
 from validation import contains_non_english_chars
+from term_config import ORIGIN_COUNTRY_MAP
 
 
 def _configure_cairo_library_path():
@@ -449,8 +450,7 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     
     # Handle origin country - map CN to CHINA, VN to VIETNAM
     origin_clean = origin.strip().upper() if origin else ""
-    origin_map = {'CN': 'CHINA', 'VN': 'VIETNAM', 'KHM': 'CAMBODIA'}
-    origin_country = origin_map.get(origin_clean, origin_clean)
+    origin_country = ORIGIN_COUNTRY_MAP.get(origin_clean, origin_clean)
     svg_content = svg_content.replace('{{origin_country}}', origin_country)
 
     layout_offset = _calculate_label2_layout_offset(material_text)

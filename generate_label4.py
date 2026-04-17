@@ -18,6 +18,7 @@ import pandas as pd
 
 from generate_label2 import _configure_fontconfig, HAS_CAIROSVG, sanitize_filename
 from term_config import (
+    ORIGIN_COUNTRY_MAP,
     find_label4_title_match,
     get_label4_distributor_lines,
     get_label4_made_for_company,
@@ -35,11 +36,7 @@ except Exception:  # pragma: no cover - optional dependency in some runtimes
     ImageFont = None
 
 
-ORIGIN_COUNTRY_MAP = {
-    "CN": "CHINA",
-    "VN": "VIETNAM",
-    "KHM": "CAMBODIA",
-}
+
 
 # Label 4 layout constants (SVG coordinates)
 LABEL_CENTER_X = 122.0
