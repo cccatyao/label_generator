@@ -130,7 +130,7 @@ if uploaded_file is not None:
             with st.spinner("Generating labels..."):
                 # Import validation functions from centralized validation module
                 from validation import (
-                    validate_record_common,
+                    validate_record_for_label2,
                     validate_record_for_label19,
                 )
                 
@@ -139,6 +139,13 @@ if uploaded_file is not None:
                 pdf_files_2 = []
                 pdf_files_19 = []
                 pdf_files_4 = []
+                seen_warnings = set()
+
+                def add_warnings(messages):
+                    for message in messages:
+                        if message not in seen_warnings:
+                            all_warnings.append(message)
+                            seen_warnings.add(message)
                 
                 # Get column names
                 columns = df.columns.tolist()
@@ -159,18 +166,13 @@ if uploaded_file is not None:
                     if per_no_col and per_no_col in row:
                         per_no = str(row[per_no_col]) if pd.notna(row[per_no_col]) else ""
                     
-                    # Validate rules shared by Label 2 and Label 19.
-                    is_valid_common, validation_errors = validate_record_common(
+                    is_valid_label2, label2_errors = validate_record_for_label2(
                         materials_text, reg_no, per_no, identifier
                     )
-
-                    if not is_valid_common:
-                        # Add all validation errors as warnings
-                        for error in validation_errors:
-                            all_warnings.append(error)
-                        continue
-
-                    valid_indices_label2.append(index)
+                    if is_valid_label2:
+                        valid_indices_label2.append(index)
+                    else:
+                        add_warnings(label2_errors)
 
                     is_valid_label19, label19_errors = validate_record_for_label19(
                         materials_text, reg_no, per_no, identifier
@@ -178,7 +180,7 @@ if uploaded_file is not None:
                     if is_valid_label19:
                         valid_indices_label19.append(index)
                     else:
-                        all_warnings.extend(label19_errors)
+                        add_warnings(label19_errors)
 
                 if valid_indices_label2:
                     df_valid_label2 = df.iloc[valid_indices_label2].reset_index(drop=True)
@@ -189,7 +191,7 @@ if uploaded_file is not None:
                         df_valid_label2
                     )
                     all_pdf_files.extend(pdf_files_2)
-                    all_warnings.extend(warnings_2)
+                    add_warnings(warnings_2)
 
                 if valid_indices_label19:
                     df_valid_label19 = df.iloc[valid_indices_label19].reset_index(drop=True)
@@ -200,7 +202,7 @@ if uploaded_file is not None:
                         df_valid_label19
                     )
                     all_pdf_files.extend(pdf_files_19)
-                    all_warnings.extend(warnings_19)
+                    add_warnings(warnings_19)
 
                 # Generate Label 4 independently from label2/label19 row gating
                 pdf_files_4, warnings_4 = generate_label4(
@@ -208,7 +210,7 @@ if uploaded_file is not None:
                     df
                 )
                 all_pdf_files.extend(pdf_files_4)
-                all_warnings.extend(warnings_4)
+                add_warnings(warnings_4)
                 
                 # Store warnings in session state
                 st.session_state.warnings = all_warnings

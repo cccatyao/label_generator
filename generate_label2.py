@@ -172,6 +172,12 @@ LABEL2_MATERIAL_START_Y = 124.6
 LABEL2_MATERIAL_END_Y = 353.08
 LABEL2_MATERIAL_TOP_PADDING = 6.0
 LABEL2_MATERIAL_BOTTOM_PADDING = 10.0
+LABEL2_CODE_SECTION_TOP_Y = 353.08
+LABEL2_CODE_SECTION_BOTTOM_Y = 397.83
+LABEL2_CODE_SECTION_HEIGHT = round(
+    LABEL2_CODE_SECTION_BOTTOM_Y - LABEL2_CODE_SECTION_TOP_Y,
+    2,
+)
 LABEL2_MEASURE_FONT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "font",
@@ -330,7 +336,7 @@ def _wrap_label2_fragment(
     end_marker: str,
     offset: float,
 ) -> str:
-    if offset <= 0:
+    if offset == 0:
         return svg_content
 
     start_index = svg_content.index(start_marker)
@@ -342,6 +348,25 @@ def _wrap_label2_fragment(
         "   </g>\n"
     )
     return svg_content[:start_index] + wrapped_fragment + svg_content[end_index:]
+
+
+def _collapse_label2_code_section(svg_content: str) -> str:
+    code_block_start = (
+        '   <text class="cls-63" transform="translate(536.5 375.45)" '
+        'text-anchor="middle" dominant-baseline="middle"\n'
+        '      id="text378">\n'
+    )
+    code_block_end = '   </text>\n'
+    start_index = svg_content.index(code_block_start)
+    end_index = svg_content.index(code_block_end, start_index) + len(code_block_end)
+    svg_content = svg_content[:start_index] + svg_content[end_index:]
+
+    svg_content = svg_content.replace(
+        '   <line class="cls-17" x1="445.21" y1="353.08" x2="627.58" y2="353.08" id="line100" />\n',
+        '',
+        1,
+    )
+    return svg_content
 
 
 def _resize_label2_canvas(svg_content: str, offset: float) -> str:
@@ -424,22 +449,25 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
         firm: Firm name
         origin: Origin country code (CN or VN)
     """
-    # Handle code_number (REG + optional PER)
-    formatted_reg_no = f"REG.NO.{reg_number}"
-    
-    # Check if per_number has a valid value (not empty, not just spaces)
+    reg_number_clean = reg_number.strip() if reg_number else ""
     per_number_clean = per_number.strip() if per_number else ""
-    
+
+    code_number_lines = []
+    if reg_number_clean:
+        code_number_lines.append(f"REG.NO.{reg_number_clean}")
     if per_number_clean:
-        # Two rows: REG.NO. on first line, PER.NO. on second line
-        # Use tspan elements with y offsets to center both lines as a whole
-        # Line height approximately 16px, so offset each line by half to center
-        formatted_per_no = f"PER.NO.{per_number_clean}"
-        code_number_content = f'<tspan x="0" dy="-8">{formatted_reg_no}</tspan><tspan x="0" dy="16">{formatted_per_no}</tspan>'
+        code_number_lines.append(f"PER.NO.{per_number_clean}")
+
+    if len(code_number_lines) == 2:
+        code_number_content = (
+            f'<tspan x="0" dy="-8">{code_number_lines[0]}</tspan>'
+            f'<tspan x="0" dy="16">{code_number_lines[1]}</tspan>'
+        )
+    elif len(code_number_lines) == 1:
+        code_number_content = code_number_lines[0]
     else:
-        # Single row: just REG.NO.
-        code_number_content = formatted_reg_no
-    
+        code_number_content = ""
+
     svg_content = svg_content.replace('{{code_number}}', code_number_content)
     
     material_tspans = create_centered_tspan_elements(material_text, line_height=LABEL2_LINE_HEIGHT)
@@ -454,7 +482,10 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     svg_content = svg_content.replace('{{origin_country}}', origin_country)
 
     layout_offset = _calculate_label2_layout_offset(material_text)
-    return _extend_label2_layout(svg_content, layout_offset)
+    svg_content = _extend_label2_layout(svg_content, layout_offset)
+    if not code_number_lines:
+        svg_content = _collapse_label2_code_section(svg_content)
+    return svg_content
 
 
 def sanitize_filename(text: str) -> str:
@@ -531,8 +562,8 @@ def generate_label2_from_dataframe(
         if origin_col and origin_col in row:
             origin = str(row[origin_col]) if pd.notna(row[origin_col]) else ""
         
-        # Skip if missing required fields (shouldn't happen with pre-validation)
-        if not materials_text or not reg_no:
+        # Skip if material text is missing (shouldn't happen with pre-validation)
+        if not materials_text:
             continue
         
         svg_content = replace_template_variables(template_content, materials_text, reg_no, per_no, firm, origin)

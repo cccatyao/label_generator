@@ -149,6 +149,44 @@ def parse_material_text(material_text: str) -> Tuple[List[Dict], List[str], bool
 MAX_LABEL19_MATERIAL_LINES = 15
 
 
+def _validate_material_and_number_fields(
+    materials_text: str,
+    reg_no: str,
+    per_no: str,
+    identifier: str,
+) -> Tuple[bool, List[str]]:
+    errors = []
+
+    if not materials_text:
+        errors.append(f"{identifier} labels are not generated, reason: material text is empty.")
+    if errors:
+        return False, errors
+
+    if contains_non_english_chars(materials_text):
+        return False, [
+            f"{identifier} labels are not generated, reason: material text is not English input."
+        ]
+
+    if reg_no and contains_non_english_chars(reg_no):
+        return False, [
+            f"{identifier} labels are not generated, reason: REG # is not English input."
+        ]
+
+    if per_no and contains_non_english_chars(per_no):
+        return False, [
+            f"{identifier} labels are not generated, reason: PER # is not English input."
+        ]
+
+    parts, parse_alerts, has_unmapped_terms = parse_material_text(materials_text)
+    if has_unmapped_terms:
+        return False, [
+            f"{identifier} labels are not generated, reason: {alert}"
+            for alert in parse_alerts
+        ]
+
+    return True, []
+
+
 def validate_record_common(
     materials_text: str,
     reg_no: str,
@@ -156,15 +194,14 @@ def validate_record_common(
     identifier: str
 ) -> Tuple[bool, List[str]]:
     """
-    Validate rules shared by Label 2 and Label 19.
+    Validate rules shared by label validators.
     
     Validation Rules:
     1. Material text must not be empty
-    2. REG number must not be empty
-    3. Material text must be English (no non-English characters)
-    4. REG number must be English
-    5. PER number (if present) must be English
-    6. All parts/materials must exist in term_config.py dictionary
+    2. Material text must be English (no non-English characters)
+    3. REG number, if present, must be English
+    4. PER number, if present, must be English
+    5. All parts/materials must exist in term_config.py dictionary
     
     Args:
         materials_text: Material composition text
@@ -177,41 +214,7 @@ def validate_record_common(
         - is_valid: True if record passes all validations
         - error_messages: List of validation error messages
     """
-    errors = []
-    # Rule 1 & 2: Check if required fields are present
-    if not materials_text or not reg_no:
-        if not materials_text:
-            errors.append(f"{identifier} labels are not generated, reason: material text is empty.")
-        if not reg_no:
-            errors.append(f"{identifier} labels are not generated, reason: REG number is empty.")
-        return False, errors
-
-    # Rule 3: Validate English input for material_text
-    if contains_non_english_chars(materials_text):
-        errors.append(f"{identifier} labels are not generated, reason: material text is not English input.")
-        return False, errors
-
-    # Rule 4: Validate English input for reg_no
-    if contains_non_english_chars(reg_no):
-        errors.append(f"{identifier} labels are not generated, reason: REG # is not English input.")
-        return False, errors
-
-    # Rule 5: Validate English input for per_no (if present)
-    if per_no and contains_non_english_chars(per_no):
-        errors.append(f"{identifier} labels are not generated, reason: PER # is not English input.")
-        return False, errors
-
-    # Rule 6: Validate that all parts/materials are in dictionary
-    parts, parse_alerts, has_unmapped_terms = parse_material_text(materials_text)
-
-    if has_unmapped_terms:
-        # Add specific errors about unmapped terms
-        for alert in parse_alerts:
-            errors.append(f"{identifier} labels are not generated, reason: {alert}")
-        return False, errors
-
-    # All validations passed
-    return True, []
+    return _validate_material_and_number_fields(materials_text, reg_no, per_no, identifier)
 
 
 def _material_text_has_too_many_lines(materials_text: str) -> bool:
@@ -227,7 +230,7 @@ def validate_record_for_label2(
     identifier: str
 ) -> Tuple[bool, List[str]]:
     """Validate a record for Label 2 generation."""
-    return validate_record_common(materials_text, reg_no, per_no, identifier)
+    return _validate_material_and_number_fields(materials_text, reg_no, per_no, identifier)
 
 
 def validate_record_for_label19(
