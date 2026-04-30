@@ -20,3 +20,7 @@ __pycache__/generate_label2.cpython-311.pyc
 .gitignore
 .gitignore
 .codex/environments/environment.toml
+.obsidian/
+.makemd/
+.space/
+System document/

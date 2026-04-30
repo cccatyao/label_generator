@@ -69,6 +69,8 @@ LABEL4_TITLE_MAP = {
     "Mattress Cover": {"french": "Housse de Matelas", "type": "Part Title"},
     "Primary Fabric": {"french": "Tissu Principal", "type": "Sub-part Title"},
     "Secondary Fabric": {"french": "Tissu Secondaire", "type": "Sub-part Title"},
+    "Sofa Seat Cushion Cover":{"french": "Housse de coussin d'assise de canapé", "type": "Part Title"},
+    "Ice Silk":{"french": "Tissu soie glacée pour matelas", "type": "Material"},
 }
 
 # Label 4 distributor blocks by firm (uppercase)
