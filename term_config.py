@@ -77,6 +77,18 @@ LABEL4_TITLE_MAP = {
     "Olefin": {"french": "Oléfine", "type": "Material"},
     "Polyvinyl Chloride (PVC)": {"french": "Chlorure de Polyvinyle", "type": "Material"},
     "Leather": {"french": "Cuir", "type": "Material"},
+    # Keep Label 4 part coverage in sync with PARTS_DICT above.
+    # When adding a PARTS_DICT term, add a matching "Part Title" entry here too.
+    "Body": {"french": "Le matériau principal du corps", "type": "Part Title"},
+    "Seat Cushion": {"french": "Un coussin de siège", "type": "Part Title"},
+    "Back Cushion": {"french": "Un coussin de dossier", "type": "Part Title"},
+    "Pillow Bolster": {"french": "Coussin pour accoudoir", "type": "Part Title"},
+    "Arm Cushion": {"french": "Accoudoir", "type": "Part Title"},
+    "Support Bar": {"french": "Barre de soutien", "type": "Part Title"},
+    "Seat Base": {"french": "Base de siège", "type": "Part Title"},
+    "Headboard Extension": {"french": "Prolongement de tête de lit", "type": "Part Title"},
+    "Top Fabric": {"french": "Tissu du dessus", "type": "Part Title"},
+    "Border Fabric": {"french": "Tissu de bordure", "type": "Part Title"},
     "Seat Cushion Cover": {"french": "Housse de coussin de siege", "type": "Part Title"},
     "Back Cushion Cover": {"french": "Housse de coussin de dossier", "type": "Part Title"},
     "Base Cushion Cover": {"french": "Housse de coussin de base", "type": "Part Title"},
