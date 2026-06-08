@@ -27,6 +27,7 @@ ORIGIN_COUNTRY_MAP = {
 }
 
 # Material terms - English (normalized uppercase) -> French translation
+# All material terms should also be updated to LABLE4_TITLE_MAP
 MATERIALS_DICT = {
     "VISCOELASTIC POLYURETHANE FOAM": "Mousse de polyuréthane viscoélastique",
     "POLYURETHANE FOAM PAD": "Tampon en mousse de polyuréthane",
@@ -48,6 +49,22 @@ MATERIALS_DICT = {
 # English (canonical display) -> French + Type
 # Supported types: "Material", "Part Title", "Sub-part Title"
 LABEL4_TITLE_MAP = {
+    # Keep Label 4 material coverage in sync with MATERIALS_DICT above.
+    # When adding a MATERIALS_DICT term, add a matching "Material" entry here too.
+    "Viscoelastic Polyurethane Foam": {"french": "Mousse de polyuréthane viscoélastique", "type": "Material"},
+    "Polyurethane Foam Pad": {"french": "Tampon en mousse de polyuréthane", "type": "Material"},
+    "Polyurethane Foam": {"french": "Mousse de polyuréthane", "type": "Material"},
+    "Polyester Fiber Batting": {"french": "La ouate de fibre de polyester", "type": "Material"},
+    "Coil Pocket Spring": {"french": "Ensemble de ressorts enroulés", "type": "Material"},
+    "Innerspring Unit": {"french": "Unité de ressorts", "type": "Material"},
+    "Polyester Fiber": {"french": "Fibre de polyester", "type": "Material"},
+    "PVC Board": {"french": "Planche de PVC", "type": "Material"},
+    "Waterfowl Feathers": {"french": "Les plumes de canard", "type": "Material"},
+    "Expanded Polythylene Foam": {"french": "Mousse de polyéthylène expansé", "type": "Material"},
+    "Lyocell": {"french": "Lyocell", "type": "Material"},
+    "Cotton Canvas": {"french": "Toile de coton", "type": "Material"},
+    "Felt": {"french": "Feutre", "type": "Material"},
+    "Iron Pad": {"french": "Plaque de fixation", "type": "Material"},
     "Polyester": {"french": "Polyester", "type": "Material"},
     "Nylon": {"french": "Nylon", "type": "Material"},
     "Acrylic": {"french": "Acide Acroléique", "type": "Material"},
