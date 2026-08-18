@@ -11,13 +11,14 @@ template/Label Origin.svg
 
 **/.DS_Store
 .aiexclude
-.DS_Store
-__pycache__/*.pyc
-.DS_Store
 font/fonts.conf
 tests/
-__pycache__/generate_label2.cpython-311.pyc
 .gitignore
+
+# Ignore all DS_Store and compiled Python files
+.DS_Store
+*.pyc
+__pycache__/
 .codex/environments/environment.toml
 .obsidian/
 .makemd/
