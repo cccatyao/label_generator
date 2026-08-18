@@ -132,6 +132,12 @@ LABEL4_MADE_FOR_COMPANY = {
     "MOPIO": "MOPIO INC.",
 }
 
+# Label 2 "MADE FOR" address block by firm (uppercase)
+LABEL2_FIRM_ADDRESS = {
+    "CASTLERY": "1950 W. CORPORATE WAY, PMB 95972, ANAHEIM, CA 92801",
+    "MOPIO": "5101 Santa Monica Blvd, Suite 8-708, Los Angeles CA 90029, United States",
+}
+
 # Label 4 washing instruction mapping (normalized instruction -> icon key)
 LABEL4_WASHING_ICON_KEY_BY_INSTRUCTION = {
     "DO NOT BLEACH": "no_bleach",
@@ -283,3 +289,15 @@ def get_label4_made_for_company(firm: str) -> str:
         return LABEL4_MADE_FOR_COMPANY.get("MOPIO", "")
 
     return ""
+
+
+def get_label2_address(firm: str) -> str:
+    """Get label2 'MADE FOR' address block by firm name, defaulting to Castlery."""
+    normalized_firm = normalize_text(firm) if firm else ""
+    if normalized_firm in LABEL2_FIRM_ADDRESS:
+        return LABEL2_FIRM_ADDRESS[normalized_firm]
+
+    if "MOPIO" in normalized_firm:
+        return LABEL2_FIRM_ADDRESS.get("MOPIO", "")
+
+    return LABEL2_FIRM_ADDRESS.get("CASTLERY", "")

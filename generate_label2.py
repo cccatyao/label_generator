@@ -17,7 +17,7 @@ from typing import List, Tuple, Optional
 
 # Import validation functions from centralized module
 from validation import contains_non_english_chars
-from term_config import ORIGIN_COUNTRY_MAP
+from term_config import ORIGIN_COUNTRY_MAP, get_label2_address
 
 
 def _configure_cairo_library_path():
@@ -178,6 +178,9 @@ LABEL2_CODE_SECTION_HEIGHT = round(
     LABEL2_CODE_SECTION_BOTTOM_Y - LABEL2_CODE_SECTION_TOP_Y,
     2,
 )
+# Address block already fits 2 lines in the template's original layout;
+# extra wrapped lines beyond this push the box (and everything below it) down.
+LABEL2_ADDRESS_BASE_LINE_COUNT = 2
 LABEL2_MEASURE_FONT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "font",
@@ -330,6 +333,15 @@ def _calculate_label2_layout_offset(
     return round(max(0.0, used_height - available_height), 2)
 
 
+def _calculate_label2_address_offset(
+    address_text: str,
+    line_height: float = LABEL2_LINE_HEIGHT,
+) -> float:
+    wrapped_line_count = len(_wrap_label2_text_lines(address_text))
+    extra_lines = max(0, wrapped_line_count - LABEL2_ADDRESS_BASE_LINE_COUNT)
+    return round(extra_lines * line_height, 2)
+
+
 def _wrap_label2_fragment(
     svg_content: str,
     start_marker: str,
@@ -399,40 +411,86 @@ def _resize_label2_canvas(svg_content: str, offset: float) -> str:
     return svg_content
 
 
-def _extend_label2_layout(svg_content: str, offset: float) -> str:
+def _shift_label2_address_dependents(svg_content: str, offset: float) -> str:
+    """
+    Nudge the elements anchored below the address block (box bottom border,
+    "Date of Delivery" line, and the "MADE IN ..." footer) by the extra
+    height the address needed beyond its original 2-line allowance.
+    """
     if offset <= 0:
         return svg_content
 
-    svg_content = _resize_label2_canvas(svg_content, offset)
+    svg_content = svg_content.replace(
+        '<line class="cls-17" x1="445.21" y1="530.55" x2="627.58" y2="530.55" id="line104" />',
+        f'<line class="cls-17" x1="445.21" y1="{530.55 + offset:.2f}" x2="627.58" y2="{530.55 + offset:.2f}" id="line104" />',
+        1,
+    )
+    svg_content = svg_content.replace(
+        '<text class="cls-62" transform="translate(463.38 544.42)" id="text207">',
+        f'<text class="cls-62" transform="translate(463.38 {544.42 + offset:.2f})" id="text207">',
+        1,
+    )
+    # "Date of Delivery" is reinforced by a vector-outline duplicate (g219) for
+    # print weight; it must move down together with the live text above.
+    svg_content = _wrap_label2_fragment(
+        svg_content,
+        '<g class="cls-8" clip-path="url(#clippath-7)" id="g219">',
+        '<line class="cls-20" x1="626.8" y1="260.47" x2="805.25" y2="260.47" id="line219" />',
+        offset,
+    )
+    svg_content = svg_content.replace(
+        '<line class="cls-22" x1="535.26" y1="544.83" x2="607.11" y2="544.21" id="line801" />',
+        f'<line class="cls-22" x1="535.26" y1="{544.83 + offset:.2f}" x2="607.11" y2="{544.21 + offset:.2f}" id="line801" />',
+        1,
+    )
+    svg_content = svg_content.replace(
+        '<text class="cls-63" x="536.5" y="580.97" text-anchor="middle" dominant-baseline="middle" id="text379">',
+        f'<text class="cls-63" x="536.5" y="{580.97 + offset:.2f}" text-anchor="middle" dominant-baseline="middle" id="text379">',
+        1,
+    )
+    return svg_content
+
+
+def _extend_label2_layout(
+    svg_content: str,
+    material_offset: float,
+    address_offset: float = 0.0,
+) -> str:
+    total_offset = material_offset + address_offset
+    if total_offset <= 0:
+        return svg_content
+
+    svg_content = _resize_label2_canvas(svg_content, total_offset)
+    svg_content = _shift_label2_address_dependents(svg_content, address_offset)
     svg_content = _wrap_label2_fragment(
         svg_content,
         '<line class="cls-17" x1="445.21" y1="353.08" x2="627.58" y2="353.08" id="line100" />',
         '<line class="cls-17" x1="445.07" y1="75.11" x2="628.85" y2="75.11" id="line101" />',
-        offset,
+        material_offset,
     )
     svg_content = _wrap_label2_fragment(
         svg_content,
         '<line class="cls-17" x1="445.01" y1="397.83" x2="627.92" y2="397.83" id="line102" />',
         '<line class="cls-20" x1="626.8" y1="260.47" x2="805.25" y2="260.47" id="line219" />',
-        offset,
+        material_offset,
     )
     svg_content = _wrap_label2_fragment(
         svg_content,
         '<text class="cls-63" transform="translate(536.5 375.45)" text-anchor="middle" dominant-baseline="middle"',
         '<rect class="cls-18" x="392.83" width="595.28"',
-        offset,
+        material_offset,
     )
     svg_content = _wrap_label2_fragment(
         svg_content,
         '<text class="cls-62" transform="translate(651.2 378.42)" id="text387">',
         '<text class="cls-63" transform="translate(633.82 277.73)" id="text646">',
-        offset,
+        material_offset,
     )
     svg_content = _wrap_label2_fragment(
         svg_content,
         '<text class="cls-63" transform="translate(508.49 479.27)" id="text743">',
         '</svg>',
-        offset,
+        material_offset,
     )
     return svg_content
 
@@ -475,14 +533,22 @@ def replace_template_variables(svg_content: str, material_text: str, reg_number:
     
     # Handle firm name
     svg_content = svg_content.replace('{{firm}}', firm.strip() if firm else '')
-    
+
+    # Handle address - varies by firm, wraps and grows the box if it overflows
+    address_text = get_label2_address(firm)
+    address_tspans = create_centered_tspan_elements(
+        address_text, line_height=LABEL2_LINE_HEIGHT, top_padding=0.0
+    )
+    svg_content = svg_content.replace('{{address_lines}}', address_tspans)
+
     # Handle origin country - map CN to CHINA, VN to VIETNAM
     origin_clean = origin.strip().upper() if origin else ""
     origin_country = ORIGIN_COUNTRY_MAP.get(origin_clean, origin_clean)
     svg_content = svg_content.replace('{{origin_country}}', origin_country)
 
     layout_offset = _calculate_label2_layout_offset(material_text)
-    svg_content = _extend_label2_layout(svg_content, layout_offset)
+    address_offset = _calculate_label2_address_offset(address_text)
+    svg_content = _extend_label2_layout(svg_content, layout_offset, address_offset)
     if not code_number_lines:
         svg_content = _collapse_label2_code_section(svg_content)
     return svg_content
