@@ -95,9 +95,11 @@ MATERIAL_FALLBACK_CHAR_WIDTH_BY_CLASS = {
 }
 WASH_GUIDES_WITHOUT_ICONS = {
     "air_dry",
+    "do_not_soak",
     "do_not_place_cover_or_foam_in_washer_or_dryer",
     "do_not_remove_cover",
     "do_not_use_fabric_softeners",
+    "drip_dry_removable_cover",
     "lay_flat_to_dry",
     "spot_clean",
     "spot_clean_only",

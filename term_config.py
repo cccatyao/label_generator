@@ -24,6 +24,7 @@ ORIGIN_COUNTRY_MAP = {
     "VN": "VIETNAM",
     "KHM": "CAMBODIA",
     "US": "UNITED STATES",
+    "TH":"THAILAND",
 }
 
 # Material terms - English (normalized uppercase) -> French translation
