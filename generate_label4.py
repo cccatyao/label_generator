@@ -106,6 +106,7 @@ WASH_GUIDES_WITHOUT_ICONS = {
     "note_washing_reduces_spill_resistant_finish_over_time_spot_clean_recommended",
     "professional_cleaning_only",
     "wash_separately",
+    "spot_clean_only_with_water_based_shampoo_or_foam_upholstery_cleaner",
 }
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
