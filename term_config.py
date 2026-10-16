@@ -81,6 +81,7 @@ LABEL4_TITLE_MAP = {
     # Keep Label 4 part coverage in sync with PARTS_DICT above.
     # When adding a PARTS_DICT term, add a matching "Part Title" entry here too.
     "Body": {"french": "Le matériau principal du corps", "type": "Part Title"},
+    "Frame": {"french": "House de structure", "type": "Part Title"},
     "Seat Cushion": {"french": "Un coussin de siège", "type": "Part Title"},
     "Back Cushion": {"french": "Un coussin de dossier", "type": "Part Title"},
     "Pillow Bolster": {"french": "Coussin pour accoudoir", "type": "Part Title"},
@@ -99,6 +100,8 @@ LABEL4_TITLE_MAP = {
     "Mattress Cover": {"french": "Housse de Matelas", "type": "Part Title"},
     "Primary Fabric": {"french": "Tissu Principal", "type": "Sub-part Title"},
     "Secondary Fabric": {"french": "Tissu Secondaire", "type": "Sub-part Title"},
+    "Primary Material": {"french": "Matériau principal", "type": "Sub-part Title"},
+    "Secondary Material": {"french": "Matériau secondaire", "type": "Sub-part Title"},
     "Sofa Seat Cushion Cover":{"french": "Housse de coussin d'assise de canapé", "type": "Part Title"},
     "Ice Silk":{"french": "Tissu soie glacée pour matelas", "type": "Material"},
 }
